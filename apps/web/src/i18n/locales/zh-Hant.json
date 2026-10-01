@@ -1,0 +1,83 @@
+{
+	"app": {
+		"name": "靜",
+		"tagline": "在你的裝置上為相片降低雜訊"
+	},
+	"drop": {
+		"title": "將相片拖曳至此以降低雜訊",
+		"titleActive": "放開即可降低雜訊",
+		"choose": "選擇相片",
+		"hint": "或直接貼上 · JPEG、PNG 或 WebP",
+		"desktopOnly": "在電腦上效果最好。大尺寸相片在這台裝置上可能較慢。"
+	},
+	"privacy": {
+		"line": "相片只會留在這部裝置上，不會上傳到任何地方。",
+		"how": "我們如何確認",
+		"title": "我們如何確認相片留在這裡",
+		"local": "「靜」在這台電腦的瀏覽器分頁中降低雜訊，使用的是你自己的顯示晶片或處理器。",
+		"enforced": "這個網頁只能連線到它所屬的網站，而該網站只提供靜態檔案、不接收任何資料。這項規則由瀏覽器強制執行，瀏覽器的網路面板也會列出每一筆連線。",
+		"open": "程式碼完全開源，任何人都能檢查。",
+		"source": "閱讀原始碼",
+		"close": "關閉"
+	},
+	"notice": {
+		"useAnotherBrowser": "這個瀏覽器無法使用你的顯示晶片，處理相片需要數分鐘而非數秒。請改用 Chrome 或 Edge 開啟「靜」，即可全速處理。",
+		"updateBrowser": "這個瀏覽器目前無法使用你的顯示晶片，處理相片需要數分鐘而非數秒。請更新瀏覽器與顯示卡驅動程式，即可全速處理。",
+		"turnOnAcceleration": "這個瀏覽器已關閉硬體加速。開啟後，處理速度會快上許多。",
+		"processorOnly": "這台電腦將使用處理器處理相片。可以正常運作，但速度較慢，每張相片約需數分鐘。",
+		"showMeHow": "查看設定方式",
+		"hideSteps": "隱藏步驟",
+		"dismiss": "關閉",
+		"steps": {
+			"chromium": "Chrome 或 Edge：開啟「設定」，選擇「系統」，開啟「可用時使用圖形加速功能」，然後重新啟動瀏覽器。",
+			"firefox": "Firefox：開啟「設定」，找到「效能」，取消勾選「使用建議的效能設定」，勾選「可用時使用硬體加速」，然後重新啟動。",
+			"drivers": "仍然很慢？請從電腦製造商或 Intel、AMD、NVIDIA 網站更新顯示卡驅動程式。"
+		}
+	},
+	"model": {
+		"size": "需下載一次，{{size}}。之後可離線使用。",
+		"metered": "你目前使用計量付費網路。要現在下載降噪模型（{{size}}）嗎？",
+		"downloadNow": "下載",
+		"downloading": "正在下載降噪模型",
+		"preparing": "正在準備降噪模型",
+		"progress": "{{received}} / {{total}}"
+	},
+	"process": {
+		"opening": "正在開啟 {{name}}",
+		"removing": "正在降低雜訊",
+		"band": "第 {{done}} / {{total}} 區段",
+		"cancel": "取消",
+		"cancelled": "已停止，未儲存任何檔案。"
+	},
+	"result": {
+		"before": "處理前",
+		"after": "處理後",
+		"divider": "處理前後比較",
+		"actualPixels": "100%：一個相片像素對應一個螢幕像素。拖曳即可比較。",
+		"export": "匯出",
+		"exporting": "正在匯出",
+		"savingTo": "儲存位置：下載項目",
+		"saved": "已將 {{file}} 儲存至「下載項目」",
+		"another": "開啟其他相片",
+		"time": "{{backend}}處理 {{seconds}} 秒"
+	},
+	"backend": {
+		"webgpu": "顯示晶片",
+		"wasm": "處理器"
+	},
+	"error": {
+		"unsupported": "「靜」目前還無法開啟 {{name}} 的格式。請使用 JPEG、PNG 或 WebP 相片。",
+		"decode": "無法開啟 {{name}}，檔案可能已損毀。請從相片應用程式重新匯出後再試一次。",
+		"tooLarge": "{{name}} 為 {{mp}} 百萬像素，超過這台電腦能安全處理的上限（{{limit}} 百萬像素）。請縮小尺寸後再試一次。",
+		"model": "降噪模型未能下載。請檢查網路連線後再試一次。",
+		"gpu": "顯示晶片停止回應。請再試一次；若問題持續發生，請改用其他瀏覽器。",
+		"output": "降噪結果無法使用，因此未儲存任何檔案。請再試一次，或改用其他瀏覽器開啟「靜」。",
+		"generic": "發生錯誤：{{message}}",
+		"retry": "再試一次"
+	},
+	"language": {
+		"label": "語言",
+		"en": "English",
+		"zh-Hant": "繁體中文"
+	}
+}

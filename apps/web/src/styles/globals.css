@@ -1,0 +1,145 @@
+/* SPDX-License-Identifier: Apache-2.0 */
+@import 'tailwindcss';
+@import '@fontsource-variable/inter/wght.css';
+
+@custom-variant light (&:where([data-theme='light'], [data-theme='light'] *));
+
+/*
+ * A photo tool must not change how the photo looks (§5.1): neutral greys with
+ * zero chroma, never black; one accent, used only on interactive controls.
+ * Dark by default whatever the system theme; data-theme="light" is the
+ * light-grey accessibility option.
+ */
+:root {
+	color-scheme: dark;
+	--canvas: oklch(0.215 0 0);
+	--surface: oklch(0.245 0 0);
+	--raised: oklch(0.29 0 0);
+	--sunken: oklch(0.185 0 0);
+	--line: oklch(1 0 0 / 0.08);
+	--line-strong: oklch(1 0 0 / 0.15);
+	--fg: oklch(0.95 0 0);
+	--fg-muted: oklch(0.76 0 0);
+	--fg-subtle: oklch(0.62 0 0);
+	--accent: oklch(0.76 0.1 245);
+	--accent-hover: oklch(0.8 0.095 245);
+	--accent-fg: oklch(0.19 0.035 250);
+	--warning: oklch(0.84 0.11 85);
+	--danger: oklch(0.74 0.14 25);
+	--success: oklch(0.8 0.12 155);
+}
+
+:root[data-theme='light'] {
+	color-scheme: light;
+	--canvas: oklch(0.885 0 0);
+	--surface: oklch(0.92 0 0);
+	--raised: oklch(0.965 0 0);
+	--sunken: oklch(0.85 0 0);
+	--line: oklch(0 0 0 / 0.1);
+	--line-strong: oklch(0 0 0 / 0.18);
+	--fg: oklch(0.2 0 0);
+	--fg-muted: oklch(0.38 0 0);
+	--fg-subtle: oklch(0.48 0 0);
+	--accent: oklch(0.5 0.13 250);
+	--accent-hover: oklch(0.45 0.13 250);
+	--accent-fg: oklch(0.985 0 0);
+	--warning: oklch(0.52 0.12 70);
+	--danger: oklch(0.52 0.17 25);
+	--success: oklch(0.5 0.12 155);
+}
+
+@theme inline {
+	--font-sans:
+		'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang TC', 'Hiragino Sans TC',
+		'Microsoft JhengHei', 'Noto Sans TC', 'Noto Sans CJK TC', sans-serif;
+	--color-canvas: var(--canvas);
+	--color-surface: var(--surface);
+	--color-raised: var(--raised);
+	--color-sunken: var(--sunken);
+	--color-line: var(--line);
+	--color-line-strong: var(--line-strong);
+	--color-fg: var(--fg);
+	--color-fg-muted: var(--fg-muted);
+	--color-fg-subtle: var(--fg-subtle);
+	--color-accent: var(--accent);
+	--color-accent-hover: var(--accent-hover);
+	--color-accent-fg: var(--accent-fg);
+	--color-warning: var(--warning);
+	--color-danger: var(--danger);
+	--color-success: var(--success);
+	/* Strong custom curves: the built-in easings are too weak to feel intentional. */
+	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+@layer base {
+	html {
+		background: var(--canvas);
+		color: var(--fg);
+		font-size: 14px;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		text-rendering: optimizeLegibility;
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		min-height: 100dvh;
+		overscroll-behavior: none;
+	}
+
+	button,
+	[role='button'],
+	[role='slider'] {
+		-webkit-tap-highlight-color: transparent;
+		touch-action: manipulation;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+
+	::selection {
+		background: color-mix(in oklch, var(--accent) 35%, transparent);
+	}
+
+	dialog::backdrop {
+		background: oklch(0 0 0 / 0.55);
+	}
+}
+
+@layer utilities {
+	.tabular {
+		font-variant-numeric: tabular-nums;
+	}
+
+	/* Enter from slightly below, fading in. Only opacity under reduced motion. */
+	.enter-up {
+		transition:
+			opacity 220ms var(--ease-out),
+			transform 220ms var(--ease-out);
+		@starting-style {
+			opacity: 0;
+			transform: translateY(6px);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.enter-up {
+			transition: opacity 200ms ease;
+			@starting-style {
+				transform: none;
+			}
+		}
+	}
+}
+
+@keyframes sweep {
+	from {
+		transform: translateX(-100%);
+	}
+	to {
+		transform: translateX(300%);
+	}
+}
