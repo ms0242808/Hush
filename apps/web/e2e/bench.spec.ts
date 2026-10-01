@@ -22,4 +22,33 @@ test.describe('benchmark page', () => {
 		await page.getByRole('button', { name: 'Seam check' }).click();
 		await expect(page.getByTestId('bench-results')).toContainText('tiled vs whole: Infinity dB · max diff 0');
 	});
+
+	test('the 100% preview stays inside its panel when the page scrolls', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 640 });
+		await page.goto('/bench/?backend=wasm');
+		await page.getByTestId('bench-run').click();
+		const frame = page.getByTestId('compare-frame');
+		await expect(frame).toBeVisible();
+		// Clicking Run scrolled the page to reach the button; scroll back after the preview is laid out.
+		const scrolled = await page.evaluate(() => window.scrollY);
+		expect(scrolled).toBeGreaterThan(0);
+		await page.evaluate(() => window.scrollTo(0, 0));
+		await page.waitForTimeout(200);
+		const { inside, scale } = await page.evaluate(() => {
+			const stage = document.querySelector('[data-testid="compare-stage"]')!.getBoundingClientRect();
+			const box = document.querySelector('[data-testid="compare-frame"]')!.getBoundingClientRect();
+			const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="compare-frame"] canvas')!;
+			return {
+				inside:
+					box.left >= stage.left - 0.5 &&
+					box.right <= stage.right + 0.5 &&
+					box.top >= stage.top - 0.5 &&
+					box.bottom <= stage.bottom + 0.5,
+				// One photo pixel per device pixel.
+				scale: canvas.width / (canvas.getBoundingClientRect().width * window.devicePixelRatio),
+			};
+		});
+		expect(inside).toBe(true);
+		expect(scale).toBeCloseTo(1, 5);
+	});
 });

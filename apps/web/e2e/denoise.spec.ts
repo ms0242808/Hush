@@ -111,6 +111,29 @@ test.describe('one photo', () => {
 	});
 });
 
+test.describe('result view', () => {
+	test('stays idle once drawn: no redraw loop', async ({ page }) => {
+		await page.addInitScript(() => {
+			const counted = window as unknown as { __draws: number };
+			counted.__draws = 0;
+			const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+			CanvasRenderingContext2D.prototype.drawImage = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
+				counted.__draws++;
+				return (drawImage as (...a: unknown[]) => void).apply(this, args);
+			} as typeof drawImage;
+		});
+		await page.goto('/');
+		await choosePhoto(page, 'noisy-gradient.png');
+		await expect(page.getByTestId('compare-frame')).toBeVisible();
+		await page.waitForTimeout(500);
+		const draws = () => page.evaluate(() => (window as unknown as { __draws: number }).__draws);
+		const settled = await draws();
+		await page.waitForTimeout(1500);
+		expect(await draws(), 'canvas redraws while nothing changed').toBe(settled);
+		expect(settled, 'before and after, once each (a resize may add one more pair)').toBeLessThanOrEqual(4);
+	});
+});
+
 test.describe('keyboard (§5.8)', () => {
 	test('\\ shows the original, the divider moves with arrow keys, ⌘/Ctrl+O opens a photo', async ({ page }) => {
 		await page.goto('/');

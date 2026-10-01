@@ -84,10 +84,12 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 		const rect = element.getBoundingClientRect();
 		const width = images.before.width / dpr;
 		const height = images.before.height / dpr;
+		// Snap the frame's position in the viewport to whole device pixels, then express it
+		// relative to the stage, so it stays put when the page scrolls.
 		const snap = (value: number) => Math.round(value * dpr) / dpr;
 		setBox({
-			left: snap(rect.left + (rect.width - width) / 2),
-			top: snap(rect.top + (rect.height - height) / 2),
+			left: snap(rect.left + (rect.width - width) / 2) - rect.left,
+			top: snap(rect.top + (rect.height - height) / 2) - rect.top,
 			width,
 			height,
 		});
@@ -96,32 +98,46 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 	useLayoutEffect(layout, [layout]);
 	useLayoutEffect(() => apply(position.current), [apply, box]);
 
+	// Read the latest callbacks through refs, so the observer below is created once. Re-creating a
+	// ResizeObserver fires it at once; with a fresh crop changing `layout` each time, that looped forever.
+	const layoutRef = useRef(layout);
+	const onStageResizeRef = useRef(onStageResize);
+	useLayoutEffect(() => {
+		layoutRef.current = layout;
+		onStageResizeRef.current = onStageResize;
+	});
+
 	useEffect(() => {
 		const element = stage.current;
 		if (!element) return;
 		let timer = 0;
-		let first = true;
+		let reported = '';
 		const report = () => {
 			const dpr = window.devicePixelRatio || 1;
 			const rect = element.getBoundingClientRect();
-			onStageResize({ width: Math.floor(rect.width * dpr), height: Math.floor(rect.height * dpr) });
+			const size = { width: Math.floor(rect.width * dpr), height: Math.floor(rect.height * dpr) };
+			const key = `${size.width}×${size.height}`;
+			if (key === reported) return; // only a real change needs a new crop
+			reported = key;
+			onStageResizeRef.current(size);
 		};
-		const observer = new ResizeObserver(() => {
-			layout();
+		const onResize = () => {
+			layoutRef.current();
 			window.clearTimeout(timer);
-			if (first) {
-				first = false;
+			if (reported === '')
 				report(); // the first crop shouldn't wait
-			} else {
-				timer = window.setTimeout(report, 150);
-			}
-		});
+			else timer = window.setTimeout(report, 150);
+		};
+		const observer = new ResizeObserver(onResize);
 		observer.observe(element);
+		// A window resize also covers devicePixelRatio changes, e.g. moving to another display.
+		window.addEventListener('resize', onResize);
 		return () => {
 			observer.disconnect();
+			window.removeEventListener('resize', onResize);
 			window.clearTimeout(timer);
 		};
-	}, [layout, onStageResize]);
+	}, []);
 
 	const fractionAt = (clientX: number) => {
 		const rect = frame.current?.getBoundingClientRect();
@@ -134,7 +150,7 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 				<div
 					ref={frame}
 					data-testid="compare-frame"
-					className="fixed cursor-ew-resize touch-none select-none"
+					className="absolute cursor-ew-resize touch-none select-none"
 					style={{ left: box.left, top: box.top, width: box.width, height: box.height }}
 					onPointerDown={(event) => {
 						// One pointer at a time: a second finger mid-drag must not make the divider jump.
