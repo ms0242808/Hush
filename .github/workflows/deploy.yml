@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Deploy to Cloudflare (static assets only, no Worker script).
+#
+# Off until the repository is set up for it:
+#   - variable HUSH_DEPLOY = true
+#   - secrets CLOUDFLARE_API_TOKEN (Workers Scripts: Edit) and CLOUDFLARE_ACCOUNT_ID
+#   - tools/models/models.lock.json pins a published Hugging Face revision
+# See README → Deploying.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.HUSH_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Downloads the pinned revision from Hugging Face, verifies every sha256, splits.
+      - run: pnpm fetch-models
+      - run: pnpm build
+        env:
+          HUSH_VERSION: ${{ github.sha }}
+      - run: pnpm check:dist
+      - run: pnpm deploy:cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

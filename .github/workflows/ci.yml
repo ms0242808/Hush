@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: Apache-2.0
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Format, typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      # Includes the DOM-free rule for packages/core and packages/ops, and the no-upload rule.
+      - run: pnpm lint
+      - run: pnpm test
+      # THIRD_PARTY_NOTICES.md is generated from the dependency tree and must be current.
+      - run: pnpm notices:check
+      # CI builds with the tiny test models: the real ones are fetched from Hugging Face at deploy time.
+      - run: pnpm fetch-models --set test
+      - run: pnpm build
+        env:
+          HUSH_MODELS: test
+      # No file over 24 MiB; first-load JavaScript within budget.
+      - run: pnpm check:dist
+
+  e2e:
+    name: End-to-end, CSP enforced
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fetch-models --set test
+      - run: pnpm --filter @hush/web exec playwright install --with-deps chromium
+      # Served by `wrangler dev` with the production _headers: any request to another
+      # origin, or any CSP violation, fails the run.
+      - run: pnpm e2e
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7

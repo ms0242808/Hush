@@ -1,0 +1,8 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"lib": ["ES2023"],
+		"types": ["node"]
+	},
+	"include": ["*.ts", "models/*.ts", "models/test/**/*.ts", "models/vitest.config.ts"]
+}

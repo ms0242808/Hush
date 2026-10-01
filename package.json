@@ -1,0 +1,46 @@
+{
+	"name": "hush",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Hush (靜): an open-source photo denoiser that runs entirely in your browser. Your photos never leave your device.",
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ms0242808/Hush.git"
+	},
+	"type": "module",
+	"packageManager": "pnpm@12.4.2",
+	"engines": {
+		"node": ">=24.12"
+	},
+	"scripts": {
+		"dev": "pnpm --filter @hush/web dev",
+		"build": "pnpm --filter @hush/web build",
+		"preview": "pnpm --filter @hush/web preview",
+		"typecheck": "pnpm -r --if-present typecheck && tsc -p tools/tsconfig.json",
+		"lint": "eslint .",
+		"test": "vitest run",
+		"e2e": "pnpm --filter @hush/web e2e",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"fetch-models": "node tools/models/fetch-models.ts",
+		"check:dist": "node tools/check-dist.ts",
+		"deploy:cloudflare": "wrangler deploy --config deploy/cloudflare/wrangler.jsonc",
+		"notices": "node tools/notices.ts",
+		"notices:check": "node tools/notices.ts --check"
+	},
+	"devDependencies": {
+		"@eslint/js": "^10.0.1",
+		"@hush/eslint-plugin": "workspace:*",
+		"@types/node": "^24.0.0",
+		"eslint": "^10.0.0",
+		"eslint-plugin-react-hooks": "^7.1.0",
+		"eslint-plugin-react-refresh": "^0.5.0",
+		"globals": "^17.0.0",
+		"prettier": "^3.9.0",
+		"typescript": "~6.0.3",
+		"typescript-eslint": "^8.71.0",
+		"vitest": "^5.0.0",
+		"wrangler": "^4.140.0"
+	}
+}

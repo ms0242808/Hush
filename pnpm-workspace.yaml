@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/eslint-plugin-hush
+
+# Install scripts are opt-in. esbuild and workerd fetch a native binary;
+# protobufjs's postinstall only prints a version notice.
+allowBuilds:
+  esbuild: true
+  protobufjs: false
+  workerd: true
