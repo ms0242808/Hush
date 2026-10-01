@@ -1,0 +1,37 @@
+[
+  {
+    "model": "nafnet-sidd-w32.fp16.onnx",
+    "psnrVsOfficialW64": 42.6,
+    "maxDiff": 16,
+    "pixelsOffByMoreThan1": 40455,
+    "psnrVsNoisyInput": 19.09
+  },
+  {
+    "model": "nafnet-sidd-w32.fp32.onnx",
+    "psnrVsOfficialW64": 42.6,
+    "maxDiff": 16,
+    "pixelsOffByMoreThan1": 40463,
+    "psnrVsNoisyInput": 19.09
+  },
+  {
+    "model": "nafnet-sidd-w32.int8.onnx",
+    "psnrVsOfficialW64": 41.27,
+    "maxDiff": 17,
+    "pixelsOffByMoreThan1": 71772,
+    "psnrVsNoisyInput": 19.09
+  },
+  {
+    "model": "nafnet-sidd-w64.fp16.onnx",
+    "psnrVsOfficialW64": 69.36,
+    "maxDiff": 1,
+    "pixelsOffByMoreThan1": 0,
+    "psnrVsNoisyInput": 19.07
+  },
+  {
+    "model": "nafnet-sidd-w64.fp32.onnx",
+    "psnrVsOfficialW64": 96.3,
+    "maxDiff": 1,
+    "pixelsOffByMoreThan1": 0,
+    "psnrVsNoisyInput": 19.07
+  }
+]

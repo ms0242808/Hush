@@ -1,0 +1,1172 @@
+{
+	"machine": {
+		"cpu": "Apple M1 Pro",
+		"cores": 8,
+		"memoryGb": 16,
+		"os": "Darwin 27.0.0 arm64",
+		"browser": "chrome"
+	},
+	"suite": "gpu",
+	"environment": {
+		"at": "2026-10-01T13:08:56.449Z",
+		"version": "0.0.0-dev",
+		"userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+		"brands": "Chromium 154, Google Chrome 154",
+		"main": {
+			"probe": {
+				"webgpu": "adapter",
+				"adapter": {
+					"vendor": "apple",
+					"architecture": "metal-3",
+					"device": "",
+					"description": "",
+					"isFallbackAdapter": false
+				},
+				"shaderF16": true,
+				"limits": {
+					"maxBufferSize": 4294967292,
+					"maxStorageBufferBindingSize": 4294967292,
+					"maxComputeWorkgroupStorageSize": 32768,
+					"maxComputeInvocationsPerWorkgroup": 1024
+				},
+				"hardwareConcurrency": 8,
+				"crossOriginIsolated": true,
+				"deviceMemory": 16
+			},
+			"facts": {
+				"webgpu": "adapter",
+				"webglRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+				"webglVendor": "Google Inc. (Apple)",
+				"chromium": true
+			},
+			"assessment": {
+				"situation": "webgpu",
+				"notice": "none",
+				"backend": "webgpu",
+				"rendererHint": "hardware"
+			}
+		},
+		"worker": {
+			"webgpu": "adapter",
+			"adapter": {
+				"vendor": "apple",
+				"architecture": "metal-3",
+				"device": "",
+				"description": "",
+				"isFallbackAdapter": false
+			},
+			"shaderF16": true,
+			"limits": {
+				"maxBufferSize": 4294967292,
+				"maxStorageBufferBindingSize": 4294967292,
+				"maxComputeWorkgroupStorageSize": 32768,
+				"maxComputeInvocationsPerWorkgroup": 1024
+			},
+			"hardwareConcurrency": 8,
+			"crossOriginIsolated": true,
+			"deviceMemory": 16
+		},
+		"ort": {
+			"version": "1.30.0",
+			"webgpuWasmBytes": 26781914,
+			"wasmWasmBytes": 14239897
+		}
+	},
+	"records": [
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "1mp",
+					"tileSize": 1136
+				},
+				"repeat": 3,
+				"note": "preview, one tile"
+			},
+			"rows": [
+				{
+					"id": 1,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": false,
+						"modelMs": 1851.9350000023842,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 930.2249999940395,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-1mp",
+						"format": "synthetic",
+						"width": 1024,
+						"height": 1024,
+						"openMs": 120.37000000476837
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 1876.2849999964237,
+						"mpPerSecond": 0.5588575296407521,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 1840.9299999922514,
+							"waitMs": 1830.2699999958277,
+							"cpuMs": 42.37000001966953,
+							"totalMs": 1875.9950000047684
+						}
+					},
+					"warm": 0,
+					"verdict": "borderline"
+				},
+				{
+					"id": 2,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": false,
+						"modelMs": 1851.9350000023842,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 930.2249999940395,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-1mp",
+						"format": "synthetic",
+						"width": 1024,
+						"height": 1024,
+						"openMs": 120.37000000476837
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 1797.824999988079,
+						"mpPerSecond": 0.5832469789923673,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 1769.3949999958277,
+							"waitMs": 1760.7950000017881,
+							"cpuMs": 34.400000005960464,
+							"totalMs": 1797.7399999946356
+						}
+					},
+					"warm": 1,
+					"verdict": "borderline"
+				},
+				{
+					"id": 3,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": false,
+						"modelMs": 1851.9350000023842,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 930.2249999940395,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-1mp",
+						"format": "synthetic",
+						"width": 1024,
+						"height": 1024,
+						"openMs": 120.37000000476837
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 1788.9200000017881,
+						"mpPerSecond": 0.5861503029755114,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 1769.1899999976158,
+							"waitMs": 1759.9200000017881,
+							"cpuMs": 27.780000001192093,
+							"totalMs": 1788.859999999404
+						}
+					},
+					"warm": 2,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 986.875,
+				"peakMb": 2010.25
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp32",
+					"image": "1mp",
+					"tileSize": 1136
+				},
+				"repeat": 2,
+				"note": "preview, fp32"
+			},
+			"rows": [
+				{
+					"id": 4,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"modelBytes": 117034520,
+						"fromCache": false,
+						"modelMs": 2697.359999999404,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 619.9299999922514,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "1mp",
+						"format": "synthetic",
+						"width": 0,
+						"height": 0,
+						"openMs": 0
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 2155.5699999928474,
+						"mpPerSecond": 0.48644952379346496,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 2128.9300000071526,
+							"waitMs": 2117.094999998808,
+							"cpuMs": 36.75,
+							"totalMs": 2155.5
+						}
+					},
+					"warm": 0,
+					"verdict": "borderline"
+				},
+				{
+					"id": 5,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"modelBytes": 117034520,
+						"fromCache": false,
+						"modelMs": 2697.359999999404,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 619.9299999922514,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "1mp",
+						"format": "synthetic",
+						"width": 0,
+						"height": 0,
+						"openMs": 0
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 2300.859999999404,
+						"mpPerSecond": 0.455732204480182,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 2088.454999998212,
+							"waitMs": 2074.3649999946356,
+							"cpuMs": 223.36500000953674,
+							"totalMs": 2300.780000001192
+						}
+					},
+					"warm": 1,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 2031.90625,
+				"peakMb": 2434.15625
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "24mp",
+					"tileSize": 512
+				},
+				"note": "24 MP, tiles ≤ 512"
+			},
+			"rows": [
+				{
+					"id": 6,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 512,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": true,
+						"modelMs": 63.520000010728836,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 518.0849999934435,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-24mp",
+						"format": "synthetic",
+						"width": 6000,
+						"height": 4000,
+						"openMs": 2262.3250000029802
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 6000,
+						"height": 4000,
+						"tileSize": 480,
+						"ms": 48433.95999999344,
+						"mpPerSecond": 0.49552008549379917,
+						"stats": {
+							"tileCount": 126,
+							"tileWidth": 480,
+							"tileHeight": 512,
+							"bandFloatBytes": 36864000,
+							"tileFloatBytes": 8847360,
+							"peakFloatBytes": 45711360,
+							"firstTileMs": 411.93000000715256,
+							"waitMs": 47594.72500011325,
+							"cpuMs": 783.2250000536442,
+							"totalMs": 48433.79000000656
+						}
+					},
+					"warm": 0,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 2355.53125,
+				"peakMb": 2832.515625
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "24mp",
+					"tileSize": 768
+				},
+				"note": "24 MP, tiles ≤ 768"
+			},
+			"rows": [
+				{
+					"id": 7,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 768,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": true,
+						"modelMs": 85.8449999988079,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 518.0849999934435,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "24mp",
+						"format": "synthetic",
+						"width": 0,
+						"height": 0,
+						"openMs": 0
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 6000,
+						"height": 4000,
+						"tileSize": 720,
+						"ms": 46165.85499998927,
+						"mpPerSecond": 0.5198647355281425,
+						"stats": {
+							"tileCount": 54,
+							"tileWidth": 720,
+							"tileHeight": 736,
+							"bandFloatBytes": 52992000,
+							"tileFloatBytes": 19077120,
+							"peakFloatBytes": 72069120,
+							"firstTileMs": 858.8250000029802,
+							"waitMs": 45485.72000005841,
+							"cpuMs": 641.1300000697374,
+							"totalMs": 46165.78000000119
+						}
+					},
+					"warm": 0,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 2923.0625,
+				"peakMb": 2923.0625
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "24mp",
+					"tileSize": 1024
+				},
+				"note": "24 MP, tiles ≤ 1024"
+			},
+			"rows": [
+				{
+					"id": 8,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 1024,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": true,
+						"modelMs": 1702.6050000041723,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 518.0849999934435,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "24mp",
+						"format": "synthetic",
+						"width": 0,
+						"height": 0,
+						"openMs": 0
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 6000,
+						"height": 4000,
+						"tileSize": 912,
+						"ms": 42486.57000000775,
+						"mpPerSecond": 0.564884385818757,
+						"stats": {
+							"tileCount": 35,
+							"tileWidth": 912,
+							"tileHeight": 864,
+							"bandFloatBytes": 62208000,
+							"tileFloatBytes": 28366848,
+							"peakFloatBytes": 90574848,
+							"firstTileMs": 1215.0799999982119,
+							"waitMs": 41864.57000000775,
+							"cpuMs": 589.5950000137091,
+							"totalMs": 42486.484999999404
+						}
+					},
+					"warm": 0,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 3039.984375,
+				"peakMb": 3112.953125
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "45mp",
+					"tileSize": 1024
+				},
+				"note": "45 MP, tiles ≤ 1024"
+			},
+			"rows": [
+				{
+					"id": 9,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 1024,
+						"image": "45mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": true,
+						"modelMs": 96.5300000011921,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 518.0849999934435,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-45mp",
+						"format": "synthetic",
+						"width": 8256,
+						"height": 5504,
+						"openMs": 4196.480000004172
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"width": 8256,
+						"height": 5504,
+						"tileSize": 976,
+						"ms": 78216.24500000477,
+						"mpPerSecond": 0.5809665754217328,
+						"stats": {
+							"tileCount": 54,
+							"tileWidth": 976,
+							"tileHeight": 976,
+							"bandFloatBytes": 96694272,
+							"tileFloatBytes": 34292736,
+							"peakFloatBytes": 130987008,
+							"firstTileMs": 1442.1749999970198,
+							"waitMs": 76972.68500003219,
+							"cpuMs": 1191.6050000339746,
+							"totalMs": 78216.17000000179
+						}
+					},
+					"warm": 1,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 2910.828125,
+				"peakMb": 3277.125
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp32",
+					"image": "24mp",
+					"tileSize": 1024
+				},
+				"note": "24 MP, fp32"
+			},
+			"rows": [
+				{
+					"id": 10,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"tileSize": 1024,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"modelBytes": 117034520,
+						"fromCache": true,
+						"modelMs": 1343.7300000041723,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 1097.2600000053644,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-24mp",
+						"format": "synthetic",
+						"width": 6000,
+						"height": 4000,
+						"openMs": 2298.9950000047684
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp32",
+						"width": 6000,
+						"height": 4000,
+						"tileSize": 912,
+						"ms": 51470.889999985695,
+						"mpPerSecond": 0.46628298053534084,
+						"stats": {
+							"tileCount": 35,
+							"tileWidth": 912,
+							"tileHeight": 864,
+							"bandFloatBytes": 62208000,
+							"tileFloatBytes": 28366848,
+							"peakFloatBytes": 90574848,
+							"firstTileMs": 1541.5550000071526,
+							"waitMs": 50772.95499999821,
+							"cpuMs": 670.0899998992682,
+							"totalMs": 51470.10500000417
+						}
+					},
+					"warm": 0,
+					"verdict": "borderline"
+				}
+			],
+			"memory": {
+				"baselineMb": 1810.578125,
+				"peakMb": 2849.78125
+			}
+		},
+		{
+			"step": {
+				"kind": "seam",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "24mp",
+					"tileSize": 512
+				},
+				"size": 1024,
+				"note": "seams, 512 tiles"
+			},
+			"rows": [
+				{
+					"id": 11,
+					"kind": "seam",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 512,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": true,
+						"modelMs": 1723.6449999958277,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 821.0049999952316,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "24mp",
+						"format": "synthetic",
+						"width": 0,
+						"height": 0,
+						"openMs": 0
+					},
+					"seam": {
+						"size": 1024,
+						"tileSize": 416,
+						"psnr": 51.97247880096544,
+						"maxDiff": 6
+					},
+					"warm": 0
+				}
+			],
+			"memory": {
+				"baselineMb": 2020.5,
+				"peakMb": 2248.59375
+			}
+		},
+		{
+			"step": {
+				"kind": "seam",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w32",
+					"precision": "fp16",
+					"image": "24mp",
+					"tileSize": 1024
+				},
+				"size": 1024,
+				"note": "seams, 1024 tiles"
+			},
+			"rows": [
+				{
+					"id": 12,
+					"kind": "seam",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"tileSize": 1024,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w32",
+						"precision": "fp16",
+						"modelBytes": 59264286,
+						"fromCache": true,
+						"modelMs": 1855.9000000059605,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 821.0049999952316,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "24mp",
+						"format": "synthetic",
+						"width": 0,
+						"height": 0,
+						"openMs": 0
+					},
+					"seam": {
+						"size": 1024,
+						"tileSize": 592,
+						"psnr": 53.23566644960301,
+						"maxDiff": 4
+					},
+					"warm": 0
+				}
+			],
+			"memory": {
+				"baselineMb": 2066.546875,
+				"peakMb": 2264.640625
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w64",
+					"precision": "fp16",
+					"image": "1mp",
+					"tileSize": 1136
+				},
+				"repeat": 2,
+				"note": "width-64 preview"
+			},
+			"rows": [
+				{
+					"id": 13,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"modelBytes": 232990079,
+						"fromCache": false,
+						"modelMs": 8937.329999998212,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 2931.7750000059605,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-1mp",
+						"format": "synthetic",
+						"width": 1024,
+						"height": 1024,
+						"openMs": 116.91500000655651
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 4422.995000004768,
+						"mpPerSecond": 0.23707374753959015,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 4390.904999986291,
+							"waitMs": 4383.699999988079,
+							"cpuMs": 36.75,
+							"totalMs": 4422.949999988079
+						}
+					},
+					"warm": 0,
+					"verdict": "no-go"
+				},
+				{
+					"id": 14,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"tileSize": 1136,
+						"image": "1mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"modelBytes": 232990079,
+						"fromCache": false,
+						"modelMs": 8937.329999998212,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 2931.7750000059605,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-1mp",
+						"format": "synthetic",
+						"width": 1024,
+						"height": 1024,
+						"openMs": 116.91500000655651
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"width": 1024,
+						"height": 1024,
+						"tileSize": 1120,
+						"ms": 5234.29999999702,
+						"mpPerSecond": 0.20032783753330857,
+						"stats": {
+							"tileCount": 1,
+							"tileWidth": 1120,
+							"tileHeight": 1120,
+							"bandFloatBytes": 12582912,
+							"tileFloatBytes": 45158400,
+							"peakFloatBytes": 57741312,
+							"firstTileMs": 5137.465000003576,
+							"waitMs": 5125.875,
+							"cpuMs": 106.47499999403954,
+							"totalMs": 5234.245000004768
+						}
+					},
+					"warm": 1,
+					"verdict": "no-go"
+				}
+			],
+			"memory": {
+				"baselineMb": 1906.625,
+				"peakMb": 3994.5
+			}
+		},
+		{
+			"step": {
+				"kind": "run",
+				"config": {
+					"backend": "webgpu",
+					"modelId": "nafnet-sidd-w64",
+					"precision": "fp16",
+					"image": "24mp",
+					"tileSize": 1024
+				},
+				"note": "width-64, 24 MP"
+			},
+			"rows": [
+				{
+					"id": 15,
+					"kind": "run",
+					"config": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"tileSize": 1024,
+						"image": "24mp",
+						"machine": "integrated",
+						"threads": null
+					},
+					"prepare": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"modelBytes": 232990079,
+						"fromCache": true,
+						"modelMs": 291.5049999952316,
+						"runtimeMs": 503.875,
+						"runtimeBytes": 26781914,
+						"sessionMs": 2931.7750000059605,
+						"threads": 1,
+						"licence": {
+							"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+							"weights": "MIT (NAFNet repository)",
+							"trainingData": "SIDD (MIT)"
+						}
+					},
+					"open": {
+						"name": "synthetic-24mp",
+						"format": "synthetic",
+						"width": 6000,
+						"height": 4000,
+						"openMs": 2346.4600000083447
+					},
+					"run": {
+						"backend": "webgpu",
+						"modelId": "nafnet-sidd-w64",
+						"precision": "fp16",
+						"width": 6000,
+						"height": 4000,
+						"tileSize": 912,
+						"ms": 112412.03999999166,
+						"mpPerSecond": 0.21350026207158757,
+						"stats": {
+							"tileCount": 35,
+							"tileWidth": 912,
+							"tileHeight": 864,
+							"bandFloatBytes": 62208000,
+							"tileFloatBytes": 28366848,
+							"peakFloatBytes": 90574848,
+							"firstTileMs": 2865.3050000071526,
+							"waitMs": 111813.35500001907,
+							"cpuMs": 573.8700000792742,
+							"totalMs": 112411.99000000954
+						}
+					},
+					"warm": 0,
+					"verdict": "no-go"
+				}
+			],
+			"memory": {
+				"baselineMb": 1177.65625,
+				"peakMb": 2009.171875
+			}
+		}
+	]
+}

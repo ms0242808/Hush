@@ -1,0 +1,42 @@
+[
+  {
+    "model": "nafnet-sidd-w32.fp32.onnx",
+    "crops": 320,
+    "psnr": 39.951,
+    "psnrFloat": 40.037,
+    "ssim": 0.9223,
+    "seconds": 125.9
+  },
+  {
+    "model": "nafnet-sidd-w32.fp16.onnx",
+    "crops": 320,
+    "psnr": 39.951,
+    "psnrFloat": 40.037,
+    "ssim": 0.9223,
+    "seconds": 139.3
+  },
+  {
+    "model": "nafnet-sidd-w32.int8.onnx",
+    "crops": 320,
+    "psnr": 38.99,
+    "psnrFloat": 39.055,
+    "ssim": 0.9096,
+    "seconds": 96.6
+  },
+  {
+    "model": "nafnet-sidd-w64.fp32.onnx",
+    "crops": 320,
+    "psnr": 40.302,
+    "psnrFloat": 40.395,
+    "ssim": 0.9259,
+    "seconds": 364.1
+  },
+  {
+    "model": "nafnet-sidd-w64.fp16.onnx",
+    "crops": 320,
+    "psnr": 40.303,
+    "psnrFloat": 40.395,
+    "ssim": 0.9259,
+    "seconds": 328.9
+  }
+]

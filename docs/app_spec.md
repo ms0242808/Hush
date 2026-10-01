@@ -687,7 +687,7 @@ None in this phase.
 
 Each phase ends deployable. Don't start one until the previous criteria pass. Read docs/implementation.md for more details about each phases. Update the checkbox when you have done the task.
 
-- [ ] Phase 0 Foundations and NAFNet spike ⚠️ go/no-go
+- [x] Phase 0 Foundations and NAFNet spike ⚠️ go/no-go — [results](phase-0-results.md): quality go, speed rethink
 - [ ] Phase 1 — The pipeline, headless
 - [ ] Phase 2 — Single-photo editor
 - [ ] Phase 3 — Batch

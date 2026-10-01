@@ -1,0 +1,13 @@
+{
+	"note": "PyTorch 2.14 on Metal (MPS), same Apple M1 Pro GPU, nafnet.py with the official checkpoints. Steady state after two warm-up runs.",
+	"rows": [
+		{ "model": "nafnet-sidd-w32", "dtype": "float16", "tile": 512, "msPerTile": 298.5, "mpPerSecond": 0.88 },
+		{ "model": "nafnet-sidd-w32", "dtype": "float16", "tile": 1024, "msPerTile": 1111.2, "mpPerSecond": 0.94 },
+		{ "model": "nafnet-sidd-w32", "dtype": "float32", "tile": 512, "msPerTile": 354.2, "mpPerSecond": 0.74 },
+		{ "model": "nafnet-sidd-w32", "dtype": "float32", "tile": 1024, "msPerTile": 1287.6, "mpPerSecond": 0.81 },
+		{ "model": "nafnet-sidd-w64", "dtype": "float16", "tile": 512, "msPerTile": 647.0, "mpPerSecond": 0.41 },
+		{ "model": "nafnet-sidd-w64", "dtype": "float16", "tile": 1024, "msPerTile": 2626.1, "mpPerSecond": 0.4 },
+		{ "model": "nafnet-sidd-w64", "dtype": "float32", "tile": 512, "msPerTile": 777.0, "mpPerSecond": 0.34 },
+		{ "model": "nafnet-sidd-w64", "dtype": "float32", "tile": 1024, "msPerTile": 3158.4, "mpPerSecond": 0.33 }
+	]
+}

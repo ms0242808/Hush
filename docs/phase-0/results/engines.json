@@ -1,0 +1,9 @@
+{
+	"note": "WebGPU inside the pipeline worker, per engine, on the Apple M1 Pro. 1 MP synthetic photo, NAFNet-w32, warm cache.",
+	"rows": [
+		{ "browser": "Google Chrome 154", "workerWebGpu": "adapter (apple, metal-3)", "shaderF16": true, "isolated": true, "situation": "webgpu", "run": "fp16 on webgpu: 1.79 s" },
+		{ "browser": "WebKit 26.6 (Playwright; Safari's engine)", "workerWebGpu": "adapter (apple)", "shaderF16": true, "isolated": true, "situation": "webgpu", "run": "fp16 on webgpu: 3.35 s" },
+		{ "browser": "Google Chrome 154 --disable-gpu", "workerWebGpu": "no-adapter", "shaderF16": false, "isolated": true, "situation": "acceleration-off (WebGL: SwiftShader) → 'Hardware acceleration is turned off…'", "run": "on wasm: 11.0 s" },
+		{ "browser": "Firefox 155 (Playwright)", "workerWebGpu": "not tested: Playwright's Firefox build does not launch on this macOS release", "shaderF16": null, "isolated": null, "situation": null, "run": null }
+	]
+}
