@@ -68,7 +68,7 @@ def entry(model_id: str, label_en: str, label_zh: str, path: pathlib.Path) -> di
 		'family': 'test',
 		'task': 'denoise',
 		'label': {'en': label_en, 'zh-Hant': label_zh},
-		'tile': {'padMultiple': 16, 'overlap': 16},
+		'tile': {'padMultiple': 16, 'overlap': 16, 'channels': 3},
 		'input': {'range': [0, 1], 'layout': 'NCHW', 'colour': 'RGB'},
 		'licence': {'code': 'Apache-2.0 (Hush)', 'weights': 'Apache-2.0 (Hush)', 'trainingData': 'None'},
 		'variants': [

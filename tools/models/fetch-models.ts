@@ -40,7 +40,7 @@ export interface LockModel {
 	family: string;
 	task: string;
 	label: Record<string, string>;
-	tile: { padMultiple: number; overlap: number };
+	tile: { padMultiple: number; overlap: number; channels?: number };
 	input: { range: [number, number]; layout: 'NCHW'; colour: 'RGB' };
 	licence: { code: string; weights: string; trainingData: string };
 	variants: LockVariant[];

@@ -426,7 +426,9 @@ export function BenchApp() {
 				<div className="flex items-center gap-3">
 					<Mark className="size-7" />
 					<h1 className="text-[15px] font-semibold tracking-[-0.01em]">Hush benchmark</h1>
-					<span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-medium text-fg-subtle">Phase 0</span>
+					<span className="rounded-md bg-raised px-1.5 py-0.5 text-[11px] font-medium text-fg-subtle">
+						Developer tools
+					</span>
 				</div>
 				<Button variant="ghost" size="sm" asChild>
 					<a href="/">

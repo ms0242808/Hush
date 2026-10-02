@@ -18,7 +18,7 @@ import { storedCropSize } from '@/lib/orientation';
 import { useFilePicker, useWindowDrop } from '@/lib/photo-input';
 import { proxy, startPipeline, type PipelineHandle } from '@/lib/pipeline';
 import { formatMegabytes, formatSeconds } from '@/lib/utils';
-import { describeError, isCancelled } from './errors';
+import { describeError, isCancelled, isRetryable } from './errors';
 
 type Working =
 	| { step: 'opening' }
@@ -39,7 +39,7 @@ type Stage =
 			saved: string | null;
 			exporting: boolean;
 	  }
-	| { kind: 'error'; file: File | null; message: string };
+	| { kind: 'error'; file: File | null; message: string; retry: boolean };
 
 export function App() {
 	const { t, i18n } = useTranslation();
@@ -81,7 +81,7 @@ export function App() {
 				// Not a photo? Say so before downloading anything.
 				if (!(await sniffFile(file))) {
 					settled = true;
-					setStage({ kind: 'error', file, message: t('error.unsupported', { name: file.name }) });
+					setStage({ kind: 'error', file, message: t('error.unsupported', { name: file.name }), retry: false });
 					return;
 				}
 				const caps = await (capabilitiesPromise.current ??= detectCapabilities());
@@ -175,7 +175,7 @@ export function App() {
 					return;
 				}
 				console.error(error);
-				setStage({ kind: 'error', file, message: describeError(error, t, file.name) });
+				setStage({ kind: 'error', file, message: describeError(error, t, file.name), retry: isRetryable(error) });
 			}
 		},
 		[replaceImages, t],
@@ -199,7 +199,12 @@ export function App() {
 				console.error(error);
 				setStage((current) =>
 					current.kind === 'done'
-						? { kind: 'error', file: current.file, message: describeError(error, t, current.file.name) }
+						? {
+								kind: 'error',
+								file: current.file,
+								message: describeError(error, t, current.file.name),
+								retry: isRetryable(error),
+							}
 						: current,
 				);
 			}
@@ -221,7 +226,12 @@ export function App() {
 			window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 			setStage({ ...done, exporting: false, saved: name });
 		} catch (error) {
-			setStage({ kind: 'error', file: done.file, message: describeError(error, t, done.file.name) });
+			setStage({
+				kind: 'error',
+				file: done.file,
+				message: describeError(error, t, done.file.name),
+				retry: isRetryable(error),
+			});
 		}
 	}, [stage, t]);
 
@@ -341,8 +351,14 @@ export function App() {
 							{stage.message}
 						</p>
 						<div className="flex justify-end gap-2">
-							<Button onClick={() => setStage({ kind: 'empty' })}>{t('result.another')}</Button>
-							{stage.file && (
+							{/* Retrying only helps when the photo wasn't the problem. */}
+							<Button
+								variant={stage.retry && stage.file ? 'secondary' : 'primary'}
+								onClick={() => setStage({ kind: 'empty' })}
+							>
+								{t('result.another')}
+							</Button>
+							{stage.retry && stage.file && (
 								<Button variant="primary" onClick={() => stage.file && void process(stage.file)}>
 									{t('error.retry')}
 								</Button>

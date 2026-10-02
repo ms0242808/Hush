@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Segmented } from '@/components/ui/segmented';
 import { ACCEPT } from '@/lib/photo-input';
 import { proxy, type Pipeline } from '@/lib/pipeline';
-import { cn, formatMegabytes } from '@/lib/utils';
+import { cn, formatBytes } from '@/lib/utils';
 import type { ProcessResult } from '@/worker/pipeline.worker';
 import { summarize, SUMMARY_ROWS, type MetadataSummary } from './metadata';
 
@@ -114,7 +114,7 @@ export function PipelineCheck({ prepare, disabled, onBusy }: PipelineCheckProps)
 							{file ? 'Choose another' : 'Choose photo'}
 						</Button>
 						<span className="min-w-0 truncate text-[12px] text-fg-muted" data-testid="pipeline-file">
-							{file ? `${file.name} · ${formatMegabytes(file.size, 'en')}` : 'JPEG, PNG, WebP, HEIC or AVIF'}
+							{file ? `${file.name} · ${formatBytes(file.size, 'en')}` : 'JPEG, PNG, WebP, HEIC or AVIF'}
 						</span>
 						<input
 							ref={input}
@@ -259,7 +259,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
 	return (
 		<div className="enter-up flex flex-col gap-3" data-testid="pipeline-outcome">
 			<dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[12px] sm:grid-cols-4">
-				<Fact label="Saved" value={`${result.name} · ${formatMegabytes(result.bytes.byteLength, 'en')}`} />
+				<Fact label="Saved" value={`${result.name} · ${formatBytes(result.bytes.byteLength, 'en')}`} />
 				<Fact label="Backend" value={result.backend === 'webgpu' ? 'Graphics chip' : 'Processor'} />
 				<Fact label="Throughput" value={`${result.stats.mpPerSecond.toFixed(2)} MP/s`} />
 				<Fact label="Peak float memory" value={`${peakMiB.toFixed(0)} MiB · one band`} />
@@ -299,7 +299,7 @@ function OutcomeView({ outcome }: { outcome: Outcome }) {
 									<td className="px-3 py-1.5 text-fg-muted">{before[field] ?? <Empty />}</td>
 									<td className={cn('px-3 py-1.5', changed ? 'text-fg' : 'text-fg-muted')}>
 										<span className="inline-flex items-center gap-1.5">
-											{changed && <span aria-label="changed" className="size-1.5 shrink-0 rounded-full bg-accent" />}
+											{changed && <span aria-label="changed" className="size-1.5 shrink-0 rounded-full bg-fg-muted" />}
 											{after[field] ?? <Empty />}
 										</span>
 									</td>
@@ -332,5 +332,6 @@ function stageDurations(result: ProcessResult): number[] {
 }
 
 function formatMs(ms: number): string {
-	return ms < 1000 ? `${Math.max(0, Math.round(ms))} ms` : `${(ms / 1000).toFixed(ms < 10_000 ? 2 : 1)} s`;
+	if (ms < 1) return '< 1 ms';
+	return ms < 1000 ? `${Math.round(ms)} ms` : `${(ms / 1000).toFixed(ms < 10_000 ? 2 : 1)} s`;
 }

@@ -38,6 +38,8 @@ export function describeError(error: unknown, t: TFunction, fileName: string): s
 			return t('error.model');
 		case 'DeviceLostError':
 			return t('error.gpu');
+		case 'InferenceError':
+			return field('kind') === 'out-of-memory' ? t('error.memory') : t('error.gpu');
 		case 'OutOfMemoryError':
 			return t('error.memory');
 		case 'EncodeError':
@@ -52,4 +54,12 @@ export function describeError(error: unknown, t: TFunction, fileName: string): s
 
 export function isCancelled(error: unknown): boolean {
 	return error instanceof Error && error.name === 'CancelledError';
+}
+
+/** Errors about the photo itself: trying the same file again can't help. */
+const ABOUT_THE_PHOTO = ['UnsupportedPhotoError', 'UnsupportedFormatError', 'DecodeError', 'PhotoTooLargeError'];
+
+/** Whether "Try again" could succeed: downloads, GPUs and memory can recover; a photo's format can't. */
+export function isRetryable(error: unknown): boolean {
+	return !(error instanceof Error && ABOUT_THE_PHOTO.includes(error.name));
 }

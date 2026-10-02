@@ -1,5 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { InferenceError, ModelOutputError, type Backend, type InferenceSession } from '@hush/core';
+import {
+	InferenceError,
+	ModelOutputError,
+	type Backend,
+	type InferenceAdapter,
+	type InferenceSession,
+	type LoadedModel,
+} from '@hush/core';
 import assets from 'virtual:ort-assets';
 import { isFinitePrefix } from '../validate';
 
@@ -32,7 +39,7 @@ const DEVICE_LIMITS = [
 	'maxComputeWorkgroupSizeZ',
 ] as const;
 
-interface LoadedRuntime {
+export interface LoadedRuntime {
 	backend: Backend;
 	ort: Ort;
 	threads: number;
@@ -184,6 +191,8 @@ export interface SessionOptions {
  */
 export class OrtSession implements InferenceSession {
 	readonly backend: Backend;
+	/** The runtime this session runs on: load time, binary size, threads. */
+	readonly runtime: Pick<LoadedRuntime, 'loadMs' | 'wasmBytes' | 'threads'>;
 	createMs = 0;
 	recoveries = 0;
 	private session: OrtModule.InferenceSession | null = null;
@@ -198,6 +207,7 @@ export class OrtSession implements InferenceSession {
 	private constructor(loaded: LoadedRuntime, model: Uint8Array, options: SessionOptions) {
 		this.ort = loaded.ort;
 		this.backend = loaded.backend;
+		this.runtime = { loadMs: loaded.loadMs, wasmBytes: loaded.wasmBytes, threads: loaded.threads };
 		this.model = loaded.backend === 'webgpu' ? model : null;
 		this.options = options;
 	}
@@ -210,9 +220,14 @@ export class OrtSession implements InferenceSession {
 		return session;
 	}
 
-	/** The device's limits, for choosing a tile size (null on the processor). */
+	/** The device's adapter, for diagnostics (null on the processor). */
 	get device(): DeviceInfo | null {
 		return this.gpu?.info ?? null;
+	}
+
+	/** The largest buffer the GPU allows, for sizing tiles (§2.3); unlimited on the processor. */
+	get maxBufferBytes(): number | null {
+		return this.gpu?.info.maxBufferBytes ?? null;
 	}
 
 	private async open(model: Uint8Array): Promise<void> {
@@ -298,4 +313,24 @@ export class OrtSession implements InferenceSession {
 		this.gpu?.device.destroy();
 		this.gpu = null;
 	}
+}
+
+export interface OrtAdapterOptions extends SessionOptions {
+	/** WASM threads: the processor path uses all cores but one (§2.10). */
+	threads: number;
+	now: () => number;
+}
+
+/** The inference part of PlatformAdapters: ONNX Runtime Web, one runtime per worker. */
+export function ortInference(options: OrtAdapterOptions): InferenceAdapter {
+	const { threads, now, ...session } = options;
+	return {
+		async warm(backend) {
+			await loadRuntime(backend, threads, now, session.logLevel);
+		},
+		async createSession(model: LoadedModel) {
+			const runtime = await loadRuntime(model.backend, threads, now, session.logLevel);
+			return OrtSession.create(runtime, model.bytes, now, session);
+		},
+	};
 }

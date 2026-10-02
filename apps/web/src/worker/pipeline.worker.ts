@@ -7,27 +7,27 @@
  */
 import {
 	blankPhotoInfo,
-	bytesPerPixel,
 	chooseTileSize,
+	chooseVariant,
 	DEFAULT_OUTPUT,
 	deviceClass,
 	encodePhoto,
 	loadManifest,
-	loadModel,
 	MAX_MEGAPIXELS,
 	megapixelsPerSecond,
 	PhotoTooLargeError,
-	pickModel,
-	pickVariant,
+	prepareModel,
 	processPhoto,
 	readPhoto,
 	runRecipe,
+	tileCeiling,
 	type Backend,
 	type ColourSource,
 	type DecodedOrientation,
 	type Image8,
 	type MetadataWarning,
 	type ModelEntry,
+	type ModelRequest,
 	type ModelManifest,
 	type ModelVariant,
 	type Orientation,
@@ -46,8 +46,9 @@ import { DEFAULT_TILE_SIZE } from '../lib/defaults.ts';
 import { sniffFormat, type PhotoFormat } from '../lib/formats.ts';
 import { probeGpu } from '../lib/gpu-probe.ts';
 import { browserCodecs } from './adapters/codecs.ts';
-import { loadRuntime, OrtSession, type FaultPlan, type OrtLogLevel } from './adapters/inference.ts';
-import { browserAssets, browserStorage, browserZlib, memoryOutput, named, sha256Hex } from './adapters/platform.ts';
+import { browserAdapters } from './adapters/index.ts';
+import type { FaultPlan, OrtLogLevel, OrtSession } from './adapters/inference.ts';
+import { browserAssets, browserStorage, browserZlib, memoryOutput, named } from './adapters/platform.ts';
 import { clampRect, cropImage, psnr, toBitmap, type Rect } from './pixels.ts';
 import { SYNTHETIC_SIZES, syntheticPhoto, type SyntheticSize } from './synthetic.ts';
 
@@ -186,7 +187,7 @@ interface Source {
 let manifest: ModelManifest | null = null;
 let prepared: Prepared | null = null;
 /** A tile size that ran out of memory earlier in this session (§2.3: remembered for the session). */
-let tileCeiling: number | null = null;
+let rememberedTile: number | null = null;
 let source: Source | null = null;
 let result: Image8 | null = null;
 let cancel = { aborted: false };
@@ -206,7 +207,7 @@ function currentTileSize(ready: Prepared): number {
 		preferred: ready.tileSize,
 		padMultiple: ready.model.tile.padMultiple,
 		overlap: ready.model.tile.overlap,
-		remembered: tileCeiling,
+		remembered: rememberedTile,
 	});
 }
 
@@ -216,7 +217,7 @@ function denoiseOperation(ready: Prepared, tileSize?: number) {
 		session: ready.session,
 		tileSize: () => tileSize ?? currentTileSize(ready),
 		onBackoff: (size) => {
-			tileCeiling = Math.min(tileCeiling ?? Infinity, size);
+			rememberedTile = Math.min(rememberedTile ?? Infinity, size);
 		},
 	});
 }
@@ -244,66 +245,55 @@ const api = {
 		onProgress?: (received: number, total: number) => void,
 	): Promise<PrepareResult> {
 		const loaded = await manifestOnce();
-		const model = pickModel(loaded, 'denoise', request.modelId);
 		let shaderF16 = false;
 		if (request.backend === 'webgpu') {
 			const probe = await probeGpu();
 			if (probe.webgpu !== 'adapter') throw named('WebGpuUnavailableError', `WebGPU in a worker: ${probe.webgpu}`);
 			shaderF16 = probe.shaderF16;
 		}
-		const variant = pickVariant(model, {
+		const modelRequest: ModelRequest = {
+			task: 'denoise',
+			modelId: request.modelId ?? null,
 			backend: request.backend,
 			shaderF16,
 			...(request.precision && { precision: request.precision }),
-		});
+		};
+		const { variant } = chooseVariant(loaded, modelRequest);
 		const threads =
 			request.threads ?? (request.backend === 'wasm' ? Math.max(1, (navigator.hardwareConcurrency || 2) - 1) : 1);
 
 		if (prepared?.variant.sha256 !== variant.sha256) {
-			const modelStart = now();
-			const [runtime, file] = await Promise.all([
-				loadRuntime(request.backend, threads, now, request.logLevel),
-				loadModel(variant, {
-					assets: browserAssets,
-					storage: browserStorage,
-					sha256: sha256Hex,
-					onProgress: (received, total) => onProgress?.(received, total),
-				}),
-			]);
-			const modelMs = now() - modelStart;
 			await prepared?.session.dispose();
 			prepared = null;
-			const session = await OrtSession.create(runtime, file.bytes, now, {
+			const adapters = browserAdapters({
+				threads,
 				...(request.logLevel && { logLevel: request.logLevel }),
 				...(request.webgpuOptions && { webgpuOptions: request.webgpuOptions }),
 			});
-			// The ceiling: the backend's measured best, capped so the model's largest tensor fits the GPU's buffers.
-			const tileSize = chooseTileSize({
-				preferred: DEFAULT_TILE_SIZE[request.backend],
-				padMultiple: model.tile.padMultiple,
-				overlap: model.tile.overlap,
-				bytesPerPixel: bytesPerPixel(model, variant),
-				...(session.device && { maxBufferBytes: session.device.maxBufferBytes }),
-			});
+			const ready = await prepareModel(loaded, modelRequest, adapters, (received, total) =>
+				onProgress?.(received, total),
+			);
+			const session = ready.session as OrtSession; // the browser's inference adapter makes OrtSessions
 			prepared = {
 				backend: request.backend,
-				model,
-				variant,
+				model: ready.model,
+				variant: ready.variant,
 				session,
-				threads: runtime.threads,
-				tileSize,
+				threads: session.runtime.threads,
+				// The ceiling: the backend's measured best, capped so the model's largest tensor fits the GPU's buffers.
+				tileSize: tileCeiling(ready, DEFAULT_TILE_SIZE[request.backend]),
 				result: {
 					backend: request.backend,
-					modelId: model.id,
-					precision: variant.precision,
-					modelBytes: variant.bytes,
-					fromCache: file.fromCache,
-					modelMs,
-					runtimeMs: runtime.loadMs,
-					runtimeBytes: runtime.wasmBytes,
-					sessionMs: session.createMs,
-					threads: runtime.threads,
-					licence: model.licence,
+					modelId: ready.model.id,
+					precision: ready.variant.precision,
+					modelBytes: ready.variant.bytes,
+					fromCache: ready.fromCache,
+					modelMs: ready.loadMs,
+					runtimeMs: session.runtime.loadMs,
+					runtimeBytes: session.runtime.wasmBytes,
+					sessionMs: ready.sessionMs,
+					threads: session.runtime.threads,
+					licence: ready.model.licence,
 				},
 			};
 		} else {

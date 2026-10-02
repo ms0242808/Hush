@@ -65,6 +65,8 @@ export interface InferenceSession {
 	 * next `run` works again (§2.3). Absent where devices can't be lost.
 	 */
 	recover?(): Promise<void>;
+	/** The largest single buffer the device allows (GPUs), for sizing tiles; absent when unlimited. */
+	readonly maxBufferBytes?: number | null;
 	dispose(): Promise<void>;
 }
 

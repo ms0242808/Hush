@@ -13,6 +13,7 @@ export * from './capabilities.ts';
 export * from './manifest.ts';
 export * from './model-parts.ts';
 export * from './model-loader.ts';
+export * from './model-runtime.ts';
 export * from './verdict.ts';
 export * from './devices.ts';
 export * from './recipe.ts';

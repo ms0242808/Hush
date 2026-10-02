@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { expect, fixture, readComparison, test } from './fixtures';
-import { extract, readExif } from './metadata';
+import { extract, profileName, readExif } from './metadata';
 
 /**
  * Phase 1 through the app as it stands: real camera and phone files open,
@@ -65,7 +65,7 @@ test.describe('photos from cameras and phones', () => {
 		const out = extract(bytes);
 		const exif = await readExif(out.exif!);
 		expect(exif.ifd0).toMatchObject({ Make: 'Canon', Software: 'Hush', Orientation: 1 });
-		expect(out.icc).not.toBeNull();
+		expect(profileName(out.icc)).toBe('Display P3');
 	});
 
 	test('an AVIF opens upright from its container rotation', async ({ page }) => {

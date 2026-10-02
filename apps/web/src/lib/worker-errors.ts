@@ -24,7 +24,7 @@ function fieldsOf(error: Error): Fields {
 }
 
 Comlink.transferHandlers.set('throw', {
-	canHandle: (value: unknown) => original.canHandle(value),
+	canHandle: (value: unknown): value is unknown => original.canHandle(value),
 	serialize(thrown: unknown) {
 		const value = (thrown as { value: unknown }).value;
 		if (value instanceof Error) {

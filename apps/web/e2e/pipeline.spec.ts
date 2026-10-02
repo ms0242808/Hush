@@ -2,7 +2,8 @@
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { expect, fixture, test } from './fixtures';
-import { extract, inverted, makerNote, psnr, readExif } from './metadata';
+import './harness';
+import { extract, inverted, makerNote, profileName, psnr, readExif } from './metadata';
 
 /**
  * Phase 1: the pipeline, headless. Real photos written by independent
@@ -13,24 +14,6 @@ import { extract, inverted, makerNote, psnr, readExif } from './metadata';
  * CI runs the test model, which inverts colours exactly, so pixels can be
  * checked too: 255 − input, exactly for lossless formats, closely for lossy.
  */
-
-declare global {
-	interface Window {
-		/** The bench page's headless pipeline (src/bench/BenchApp.tsx). */
-		__hushPipeline?: {
-			process(
-				name: string,
-				base64: string,
-				settings?: Record<string, unknown>,
-				params?: Record<string, number>,
-			): Promise<unknown>;
-			processSynthetic(width: number, height: number): Promise<unknown>;
-			decode(base64: string): Promise<{ width: number; height: number; data: string }>;
-			injectFaults(plan: { outOfMemoryAbove?: number; loseDeviceOnRun?: number }): Promise<void>;
-			sessionState(): Promise<{ tileSize: number | null; recoveries: number }>;
-		};
-	}
-}
 
 interface Processed {
 	bytes: string;
@@ -114,6 +97,7 @@ test.describe('the pipeline, headless', () => {
 
 		await expectCameraExif(after.exif, 6, true);
 		expect(Buffer.compare(after.icc!, before.icc!), 'ICC profile byte for byte').toBe(0);
+		expect(profileName(after.icc)).toBe('Display P3');
 		expect(after.xmp).toBe(before.xmp);
 		expect(after.xmp).toContain('婚禮 · 台北');
 		expect(after.iptc).toBe(true);
@@ -161,6 +145,7 @@ test.describe('the pipeline, headless', () => {
 		const lossy = await processFile(page, 'meta-camera.webp');
 		const lossyOut = extract(bytesOf(lossy.bytes));
 		expect(lossyOut.webpLossless).toBe(false);
+		expect(profileName(lossyOut.icc)).toBe('Display P3');
 		await expectCameraExif(lossyOut.exif, 6, true);
 		expect(Buffer.compare(lossyOut.icc!, extract(readFileSync(fixture('meta-camera.webp'))).icc!)).toBe(0);
 		expect(lossyOut.xmp).toContain('婚禮');
@@ -183,6 +168,7 @@ test.describe('the pipeline, headless', () => {
 		const after = extract(bytesOf(result.bytes));
 		await expectCameraExif(after.exif, 1, true);
 		expect(after.xmp).toContain('tiff:Orientation="1"');
+		expect(profileName(after.icc)).toBe('Display P3');
 		expect(Buffer.compare(after.icc!, extract(readFileSync(fixture('meta-camera.jpg'))).icc!), 'the same profile').toBe(
 			0,
 		);

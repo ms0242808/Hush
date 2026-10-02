@@ -46,6 +46,12 @@ function zlib(): Zlib {
 	};
 }
 
+/** EXIF times are local to wherever the photo was taken: show them as written, never shifted to UTC. */
+const localTime = (date: Date) => {
+	const two = (n: number) => String(n).padStart(2, '0');
+	return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())} ${two(date.getHours())}:${two(date.getMinutes())}:${two(date.getSeconds())}`;
+};
+
 const coordinate = (value: number, positive: string, negative: string) =>
 	`${Math.abs(value).toFixed(4)}° ${value >= 0 ? positive : negative}`;
 
@@ -98,12 +104,7 @@ export async function summarize(bytes: Uint8Array): Promise<{ summary: MetadataS
 			software: text('Software'),
 			camera,
 			lens: text('LensModel'),
-			taken:
-				taken instanceof Date
-					? taken.toISOString().slice(0, 19).replace('T', ' ')
-					: typeof taken === 'string'
-						? taken
-						: null,
+			taken: taken instanceof Date ? localTime(taken) : typeof taken === 'string' ? taken : null,
 			exposure: exposure || null,
 			location:
 				latitude !== null && longitude !== null

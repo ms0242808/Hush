@@ -240,7 +240,14 @@ export async function runTiled(options: TiledRunOptions): Promise<TiledStats> {
 					recoveries++;
 					lostThisTile++;
 					if (signal?.aborted) throw new CancelledError();
-					await recover(error);
+					try {
+						await recover(error);
+					} catch (failure) {
+						// No new device to be had: report the loss, not the recovery's own error.
+						throw new DeviceLostError(
+							failure instanceof Error ? failure.message : 'The GPU device could not be recreated',
+						);
+					}
 					if (lostThisTile > 1) shrink();
 					continue;
 				}

@@ -19,7 +19,8 @@
 			},
 			"tile": {
 				"padMultiple": 16,
-				"overlap": 48
+				"overlap": 48,
+				"channels": 64
 			},
 			"input": {
 				"range": [
@@ -66,7 +67,8 @@
 			},
 			"tile": {
 				"padMultiple": 16,
-				"overlap": 48
+				"overlap": 48,
+				"channels": 128
 			},
 			"input": {
 				"range": [

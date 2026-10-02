@@ -5,8 +5,8 @@
 
 Pillow writes JPEG, PNG, WebP and AVIF; pillow-heif (libheif + x265) writes
 HEIC. Metadata is what cameras and phones write: EXIF with GPS and a maker
-note, an ICC profile, XMP (with location and a non-ASCII title), IPTC, a JPEG
-comment, print resolution. The IPTC segment is assembled here by hand, from
+note, a Display P3 colour profile, XMP (with location and a non-ASCII title),
+IPTC, a JPEG comment, print resolution. The IPTC segment is assembled here by hand, from
 the Photoshop IRB specification, not by Hush's code.
 
 Every photo is the same upright scene — a noisy gradient with a red square in
@@ -90,9 +90,63 @@ def exif(orientation: int = 6) -> Image.Exif:
 	return e
 
 
-def icc() -> bytes:
-	"""An sRGB profile from LittleCMS: real, small, and not Hush's."""
-	return ImageCms.ImageCmsProfile(ImageCms.createProfile('sRGB')).tobytes()
+def display_p3() -> bytes:
+	"""A Display P3 profile (ICC v2: P3 primaries, D65 white adapted to D50, the sRGB curve as a
+	1024-entry table), written here from the ICC specification — not by Hush — and checked by
+	LittleCMS. Colorants are Apple's published D50-adapted values."""
+
+	def s15(v: float) -> bytes:
+		return struct.pack('>i', round(v * 65536))
+
+	def tag(kind: bytes, body: bytes) -> bytes:
+		data = kind + b'\0\0\0\0' + body
+		return data + b'\0' * (-len(data) % 4)
+
+	def xyz(x: float, y: float, z: float) -> bytes:
+		return tag(b'XYZ ', s15(x) + s15(y) + s15(z))
+
+	name = b'Display P3'
+	desc = tag(b'desc', struct.pack('>I', len(name) + 1) + name + b'\0' + b'\0' * 8 + b'\0' * 70)
+	curve = [((i / 1023 / 12.92) if i / 1023 <= 0.04045 else ((i / 1023 + 0.055) / 1.055) ** 2.4) for i in range(1024)]
+	trc = tag(b'curv', struct.pack('>I', 1024) + b''.join(struct.pack('>H', round(v * 65535)) for v in curve))
+	tags = [
+		(b'desc', desc),
+		(b'cprt', tag(b'text', b'No copyright, use freely\0')),
+		(b'wtpt', xyz(0.9642, 1.0, 0.8249)),
+		(b'rXYZ', xyz(0.515121, 0.241196, -0.001053)),
+		(b'gXYZ', xyz(0.291977, 0.692245, 0.041885)),
+		(b'bXYZ', xyz(0.157104, 0.066574, 0.784073)),
+		(b'rTRC', trc),
+		(b'gTRC', trc),
+		(b'bTRC', trc),
+	]
+	table = struct.pack('>I', len(tags))
+	blobs = b''
+	offset = 128 + 4 + 12 * len(tags)
+	placed: dict[int, int] = {}
+	for signature, data in tags:
+		if id(data) not in placed:
+			placed[id(data)] = offset + len(blobs)
+			blobs += data
+		table += signature + struct.pack('>II', placed[id(data)], len(data))
+	size = 128 + len(table) + len(blobs)
+	header = (
+		struct.pack('>I', size)
+		+ b'\0\0\0\0'
+		+ struct.pack('>I', 0x02400000)
+		+ b'mntrRGB XYZ '
+		+ struct.pack('>6H', 2026, 1, 1, 0, 0, 0)
+		+ b'acsp'
+		+ b'\0' * 24
+		+ struct.pack('>I', 0)
+		+ s15(0.9642) + s15(1.0) + s15(0.8249)
+		+ b'\0' * 48
+	)
+	profile = header + table + blobs
+	assert len(header) == 128 and len(profile) == size
+	parsed = ImageCms.ImageCmsProfile(io.BytesIO(profile))
+	assert ImageCms.getProfileDescription(parsed).strip() == 'Display P3', 'LittleCMS should read the profile'
+	return profile
 
 
 def iptc_segment() -> bytes:
@@ -131,7 +185,7 @@ def main() -> None:
 	OUT.mkdir(parents=True, exist_ok=True)
 	pillow_heif.register_heif_opener()
 	photo = stored()
-	profile = icc()
+	profile = display_p3()
 
 	buffer = io.BytesIO()
 	photo.save(buffer, 'JPEG', quality=92, exif=exif().tobytes(), icc_profile=profile, dpi=(300, 300), xmp=XMP.encode())

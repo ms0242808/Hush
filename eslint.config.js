@@ -44,6 +44,7 @@ export default defineConfig(
 		ignores: [
 			'**/dist/**',
 			'**/dist-e2e/**',
+			'**/dist-real/**',
 			'**/node_modules/**',
 			'**/.wrangler/**',
 			'**/coverage/**',

@@ -118,6 +118,27 @@ export async function readExif(tiff: Uint8Array) {
 	})) as { ifd0: Record<string, unknown>; exif?: Record<string, unknown>; gps?: Record<string, unknown> };
 }
 
+/** An ICC profile's description ('desc' tag, v2 or v4), read from the spec. */
+export function profileName(icc: Uint8Array | null): string | null {
+	if (!icc) return null;
+	const view = new DataView(icc.buffer, icc.byteOffset, icc.byteLength);
+	for (let i = 0; i < view.getUint32(128); i++) {
+		const at = 132 + i * 12;
+		if (ascii(icc, at, at + 4) !== 'desc') continue;
+		const offset = view.getUint32(at + 4);
+		const type = ascii(icc, offset, offset + 4);
+		if (type === 'desc') return ascii(icc, offset + 12, offset + 12 + view.getUint32(offset + 8) - 1);
+		if (type === 'mluc') {
+			const length = view.getUint32(offset + 20);
+			const start = offset + view.getUint32(offset + 24);
+			return Buffer.from(icc.subarray(start, start + length))
+				.swap16()
+				.toString('utf16le');
+		}
+	}
+	return null;
+}
+
 /** The maker note's bytes (tag 0x927C in the EXIF directory), found by walking the TIFF structure. */
 export function makerNote(tiff: Uint8Array): Uint8Array | null {
 	const view = new DataView(tiff.buffer, tiff.byteOffset, tiff.byteLength);

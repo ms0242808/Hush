@@ -21,6 +21,8 @@ interface CompareViewProps {
 }
 
 const KEY_STEP = 0.01;
+/** Narrower than this (CSS px), the Before and After labels would overlap. */
+const LABELS_MIN_WIDTH = 200;
 const KEY_STEP_LARGE = 0.1;
 
 /**
@@ -189,10 +191,13 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 						<canvas ref={afterCanvas} aria-label={t('result.after')} className="absolute inset-0 size-full" />
 					</div>
 
-					<span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-white/90">
-						{t('result.before')}
-					</span>
-					{!showOriginal && (
+					{/* Labels only where both fit: on a small photo at 100% they would run into each other. */}
+					{box.width >= LABELS_MIN_WIDTH && (
+						<span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-white/90">
+							{t('result.before')}
+						</span>
+					)}
+					{!showOriginal && box.width >= LABELS_MIN_WIDTH && (
 						<span className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-white/90">
 							{t('result.after')}
 						</span>

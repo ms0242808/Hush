@@ -139,6 +139,17 @@ describe('device lost (§2.3)', () => {
 		);
 	});
 
+	it('a recovery that fails reports the device as lost', async () => {
+		await expect(
+			run(
+				randomImage(200, 200),
+				{ tileSize: 512, overlap: 32, padMultiple: 16 },
+				() => Promise.reject(new InferenceError('device-lost', 'lost')),
+				{ recover: () => Promise.reject(new InferenceError('device-lost', 'No WebGPU adapter is available')) },
+			),
+		).rejects.toMatchObject({ name: 'DeviceLostError', message: 'No WebGPU adapter is available' });
+	});
+
 	it('other failures surface unchanged, never retried', async () => {
 		let calls = 0;
 		const invalid: TileInfer = () => {

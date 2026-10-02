@@ -46,6 +46,8 @@ export interface LoadedModel {
 
 export interface InferenceAdapter {
 	createSession(model: LoadedModel): Promise<InferenceSession>;
+	/** Start loading the runtime for a backend, so it overlaps the model download. Optional. */
+	warm?(backend: Backend): Promise<void>;
 }
 
 export interface ModelStorage {
