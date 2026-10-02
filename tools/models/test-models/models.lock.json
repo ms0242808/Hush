@@ -1,0 +1,88 @@
+{
+	"schema": 1,
+	"source": {
+		"kind": "repository",
+		"path": "."
+	},
+	"active": {
+		"denoise": "hush-test-invert"
+	},
+	"models": [
+		{
+			"id": "hush-test-invert",
+			"family": "test",
+			"task": "denoise",
+			"label": {
+				"en": "Test model (inverts colours)",
+				"zh-Hant": "測試模型（反轉色彩）"
+			},
+			"tile": {
+				"padMultiple": 16,
+				"overlap": 16
+			},
+			"input": {
+				"range": [
+					0,
+					1
+				],
+				"layout": "NCHW",
+				"colour": "RGB"
+			},
+			"licence": {
+				"code": "Apache-2.0 (Hush)",
+				"weights": "Apache-2.0 (Hush)",
+				"trainingData": "None"
+			},
+			"variants": [
+				{
+					"precision": "fp32",
+					"file": "hush-test-invert.fp32.onnx",
+					"bytes": 268,
+					"sha256": "8286642a77f85eac85a7a5427f94e3a0ae2e7883a0203ff9b3a0fc960364bfcd",
+					"backends": [
+						"webgpu",
+						"wasm"
+					]
+				}
+			]
+		},
+		{
+			"id": "hush-test-nan",
+			"family": "test",
+			"task": "denoise",
+			"label": {
+				"en": "Test model (returns NaN)",
+				"zh-Hant": "測試模型（輸出 NaN）"
+			},
+			"tile": {
+				"padMultiple": 16,
+				"overlap": 16
+			},
+			"input": {
+				"range": [
+					0,
+					1
+				],
+				"layout": "NCHW",
+				"colour": "RGB"
+			},
+			"licence": {
+				"code": "Apache-2.0 (Hush)",
+				"weights": "Apache-2.0 (Hush)",
+				"trainingData": "None"
+			},
+			"variants": [
+				{
+					"precision": "fp32",
+					"file": "hush-test-nan.fp32.onnx",
+					"bytes": 176,
+					"sha256": "867c55b272d4ca8643e806cf4c2edcc018a908ab70777220debc4dfa01b6299f",
+					"backends": [
+						"webgpu",
+						"wasm"
+					]
+				}
+			]
+		}
+	]
+}

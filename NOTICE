@@ -1,0 +1,16 @@
+Hush (靜)
+Copyright 2026 The Hush contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It redistributes ONNX conversions of the NAFNet image-denoising models
+("Simple Baselines for Image Restoration", Chen, Chu, Zhang and Sun, 2022):
+  NAFNet — Copyright (c) 2022 megvii-model — MIT License
+  https://github.com/megvii-research/NAFNet
+The models were trained on the Smartphone Image Denoising Dataset (SIDD,
+Abdelhamed, Lin and Brown, 2018), MIT License.
+
+It also redistributes ONNX Runtime Web (Copyright (c) Microsoft Corporation,
+MIT License) and the jSquash image codecs (Apache License 2.0), among others.
+THIRD_PARTY_NOTICES.md lists every third-party component in the build output
+with its licence.

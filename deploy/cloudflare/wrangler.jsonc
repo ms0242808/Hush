@@ -1,0 +1,16 @@
+{
+	// Hush on Cloudflare: static assets only. There is no Worker script, so no
+	// request ever runs code on the server and nothing counts against the
+	// Workers free-tier request limit (§6.1). Headers come from
+	// apps/web/public/_headers.
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "hush",
+	"compatibility_date": "2026-09-30",
+	"assets": {
+		"directory": "../../apps/web/dist",
+		"html_handling": "auto-trailing-slash",
+		"not_found_handling": "404-page",
+	},
+	"workers_dev": true,
+	"preview_urls": true,
+}

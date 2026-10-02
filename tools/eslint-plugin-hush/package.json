@@ -1,0 +1,14 @@
+{
+	"name": "@hush/eslint-plugin",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Lint rules that keep Hush's privacy promise checkable: no request bodies, no outbound channels.",
+	"license": "Apache-2.0",
+	"type": "module",
+	"exports": {
+		".": "./index.js"
+	},
+	"peerDependencies": {
+		"eslint": ">=9"
+	}
+}

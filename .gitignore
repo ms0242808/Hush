@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+dist-e2e/
+*.tsbuildinfo
+.vite/
+
+# Models are fetched, verified and split at build time — never committed.
+# The tiny CI test models in tools/models/test-models/ are the exception.
+apps/web/.models/
+tools/models/.cache/
+tools/models/out/
+tools/models/.venv/
+# ONNX Runtime's shape-inference scratch files, left behind if a tool crashes
+tools/models/*.data
+tools/models/*_temp.onnx
+__pycache__/
+*.py[cod]
+
+# Test and benchmark output
+test-results/
+playwright-report/
+blob-report/
+coverage/
+.bench/
+
+# Cloudflare
+.wrangler/
+.dev.vars*
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.log
+
+# ONNX Runtime files copied (and split) from node_modules at build time
+apps/web/public/ort/

@@ -1,0 +1,83 @@
+{
+	"app": {
+		"name": "Hush",
+		"tagline": "Remove noise from photos, privately"
+	},
+	"drop": {
+		"title": "Drop a photo here to remove noise",
+		"titleActive": "Release to remove noise",
+		"choose": "Choose photo",
+		"hint": "or paste one · JPEG, PNG or WebP",
+		"desktopOnly": "Works best on a computer. Large photos may be slow here."
+	},
+	"privacy": {
+		"line": "Your photos stay on this device. Nothing is uploaded.",
+		"how": "How we know",
+		"title": "How we know your photos stay here",
+		"local": "Hush removes noise on this computer, inside this browser tab, using your own graphics chip or processor.",
+		"enforced": "This page may only connect to the site it came from, which serves static files and accepts nothing. Your browser enforces that rule, and its network panel shows every request.",
+		"open": "The code is open source, so anyone can check.",
+		"source": "Read the source code",
+		"close": "Close"
+	},
+	"notice": {
+		"useAnotherBrowser": "This browser can't use your graphics chip, so photos will take minutes instead of seconds. Open Hush in Chrome or Edge for full speed.",
+		"updateBrowser": "This browser can't use your graphics chip right now, so photos will take minutes instead of seconds. Update the browser and your graphics drivers for full speed.",
+		"turnOnAcceleration": "Hardware acceleration is turned off in this browser. Turn it on for much faster processing.",
+		"processorOnly": "This computer will process photos on its processor. It works, but slowly: about a few minutes per photo.",
+		"showMeHow": "Show me how",
+		"hideSteps": "Hide steps",
+		"dismiss": "Dismiss",
+		"steps": {
+			"chromium": "Chrome or Edge: open Settings, choose System, turn on “Use graphics acceleration when available”, then relaunch.",
+			"firefox": "Firefox: open Settings, find Performance, clear “Use recommended performance settings”, turn on “Use hardware acceleration when available”, then restart.",
+			"drivers": "Still slow? Update your graphics drivers from your computer maker or from Intel, AMD or NVIDIA."
+		}
+	},
+	"model": {
+		"size": "One-time download, {{size}}. Works offline after.",
+		"metered": "You're on a metered connection. Download the noise model ({{size}}) now?",
+		"downloadNow": "Download",
+		"downloading": "Downloading the noise model",
+		"preparing": "Preparing the noise model",
+		"progress": "{{received}} of {{total}}"
+	},
+	"process": {
+		"opening": "Opening {{name}}",
+		"removing": "Removing noise",
+		"band": "Band {{done}} of {{total}}",
+		"cancel": "Cancel",
+		"cancelled": "Stopped. Nothing was saved."
+	},
+	"result": {
+		"before": "Before",
+		"after": "After",
+		"divider": "Before and after",
+		"actualPixels": "100%: one photo pixel per screen pixel. Drag to compare.",
+		"export": "Export",
+		"exporting": "Exporting",
+		"savingTo": "Saving to: Downloads",
+		"saved": "Saved {{file}} to Downloads",
+		"another": "Open another photo",
+		"time": "{{seconds}} s on {{backend}}"
+	},
+	"backend": {
+		"webgpu": "graphics chip",
+		"wasm": "processor"
+	},
+	"error": {
+		"unsupported": "{{name}} isn't a format Hush can open yet. Use a JPEG, PNG or WebP photo.",
+		"decode": "{{name}} couldn't be opened. The file may be damaged. Export it again from your photo app and try once more.",
+		"tooLarge": "{{name}} is {{mp}} megapixels, more than this computer can process safely ({{limit}} MP). Resize it and try again.",
+		"model": "The noise model didn't download. Check your connection, then try again.",
+		"gpu": "The graphics chip stopped responding. Try again. If it keeps happening, use another browser.",
+		"output": "Noise removal produced an unusable result, so nothing was saved. Try again, or open Hush in another browser.",
+		"generic": "Something went wrong: {{message}}",
+		"retry": "Try again"
+	},
+	"language": {
+		"label": "Language",
+		"en": "English",
+		"zh-Hant": "繁體中文"
+	}
+}

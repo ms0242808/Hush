@@ -1,0 +1,107 @@
+{
+	"schema": 1,
+	"source": {
+		"kind": "huggingface",
+		"repo": "hush-photo/nafnet-sidd-onnx",
+		"revision": null
+	},
+	"active": {
+		"denoise": "nafnet-sidd-w32"
+	},
+	"models": [
+		{
+			"id": "nafnet-sidd-w32",
+			"family": "nafnet",
+			"task": "denoise",
+			"label": {
+				"en": "NAFNet (SIDD, width 32)",
+				"zh-Hant": "NAFNet（SIDD，寬度 32）"
+			},
+			"tile": {
+				"padMultiple": 16,
+				"overlap": 48
+			},
+			"input": {
+				"range": [
+					0,
+					1
+				],
+				"layout": "NCHW",
+				"colour": "RGB"
+			},
+			"licence": {
+				"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+				"weights": "MIT (NAFNet repository)",
+				"trainingData": "SIDD (MIT)"
+			},
+			"variants": [
+				{
+					"precision": "fp16",
+					"file": "nafnet-sidd-w32.fp16.onnx",
+					"bytes": 59264286,
+					"sha256": "d2bd3cabffe1911702053d2784c1303a8e56f388782a9f56d9817fc278d641d8",
+					"backends": [
+						"webgpu"
+					]
+				},
+				{
+					"precision": "fp32",
+					"file": "nafnet-sidd-w32.fp32.onnx",
+					"bytes": 117034520,
+					"sha256": "961ae1a7c36c2b6d99beb184329a5f35064b7550654ca42cd62efae63ab5d091",
+					"backends": [
+						"webgpu",
+						"wasm"
+					]
+				}
+			]
+		},
+		{
+			"id": "nafnet-sidd-w64",
+			"family": "nafnet",
+			"task": "denoise",
+			"label": {
+				"en": "NAFNet (SIDD, width 64)",
+				"zh-Hant": "NAFNet（SIDD，寬度 64）"
+			},
+			"tile": {
+				"padMultiple": 16,
+				"overlap": 48
+			},
+			"input": {
+				"range": [
+					0,
+					1
+				],
+				"layout": "NCHW",
+				"colour": "RGB"
+			},
+			"licence": {
+				"code": "MIT (NAFNet, © 2022 megvii-model) + Apache-2.0 (BasicSR)",
+				"weights": "MIT (NAFNet repository)",
+				"trainingData": "SIDD (MIT)"
+			},
+			"variants": [
+				{
+					"precision": "fp16",
+					"file": "nafnet-sidd-w64.fp16.onnx",
+					"bytes": 232990079,
+					"sha256": "ec879fce5b36f52ec0d811ee8567bf5d5fbe42b130b2a38debcd6ee197fc39c6",
+					"backends": [
+						"webgpu"
+					]
+				},
+				{
+					"precision": "fp32",
+					"file": "nafnet-sidd-w64.fp32.onnx",
+					"bytes": 464327589,
+					"sha256": "21c1566427f4896216fabf367cb6eef98850eab6e9b0c7b17bd6a817c3bf5da4",
+					"backends": [
+						"webgpu",
+						"wasm"
+					]
+				}
+			]
+		}
+	]
+}

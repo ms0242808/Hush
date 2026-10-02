@@ -1,0 +1,24 @@
+{
+  "note": "All 1,280 SIDD validation crops, ONNX Runtime CPU. 8-bit outputs. int8 is from the first export, numerically identical to the shipped graph.",
+  "rows": [
+    {
+      "model": "(noisy input)",
+      "crops": 1280,
+      "psnr": 23.662
+    },
+    {
+      "model": "nafnet-sidd-w32.fp32.onnx",
+      "crops": 1280,
+      "psnr": 39.881,
+      "ssim": 0.9209,
+      "seconds": 436.2
+    },
+    {
+      "model": "nafnet-sidd-w32.int8.onnx",
+      "crops": 1280,
+      "psnr": 38.927,
+      "ssim": 0.9083,
+      "seconds": 311.9
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+[project]
+name = "hush-model-tools"
+version = "0.1.0"
+description = "Export, quantize, verify and publish the ONNX models Hush serves."
+requires-python = ">=3.12,<3.14"
+license = "Apache-2.0"
+dependencies = [
+  "torch>=2.8",
+  "numpy>=2.0",
+  "onnx>=1.18",
+  "onnxscript>=0.4",
+  "onnxruntime>=1.22",
+  "onnxconverter-common>=1.15",
+  "pillow>=11",
+  "gdown>=5.2",
+  "lmdb>=1.6",
+  "huggingface-hub>=0.34",
+]
+
+[tool.uv]
+package = false

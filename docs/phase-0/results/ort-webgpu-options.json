@@ -1,0 +1,10 @@
+{
+	"note": "A/B of ONNX Runtime Web 1.30 WebGPU settings, Chrome 154, M1 Pro, NAFNet-w32, 1 MP with 512-px tiles (9 tiles), warm run. Measured before the fp16 fix, so fp16 rows ran the overflowing graph: compare rows with each other, not with the final numbers.",
+	"rows": [
+		{ "setting": "default (C++ WebGPU EP, asyncify build)", "fp16MsPerTile": 400, "fp32MsPerTile": 499 },
+		{ "setting": "validationMode: disabled", "fp16MsPerTile": 394, "fp32MsPerTile": 464 },
+		{ "setting": "preferredLayout: NCHW", "fp16MsPerTile": 351, "fp32MsPerTile": 455 },
+		{ "setting": "preferredLayout: NHWC", "fp16MsPerTile": 369, "fp32MsPerTile": 464 },
+		{ "setting": "JSEP build (older WebGPU EP)", "fp16MsPerTile": 744, "fp32MsPerTile": 898 }
+	]
+}

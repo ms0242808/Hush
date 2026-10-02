@@ -1,0 +1,22 @@
+pnpm-lock.yaml
+LICENSE
+NOTICE
+dist/
+coverage/
+playwright-report/
+test-results/
+apps/web/.models/
+apps/web/public/ort/
+dist-e2e/
+tools/models/.venv/
+tools/models/.cache/
+tools/models/out/
+.claude/
+.agents/
+skills-lock.json
+
+# Generated: their generators own the format (and CI checks them byte for byte)
+THIRD_PARTY_NOTICES.md
+tools/models/models.lock.json
+tools/models/test-models/models.lock.json
+docs/phase-0/results/
