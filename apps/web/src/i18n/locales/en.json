@@ -7,7 +7,7 @@
 		"title": "Drop a photo here to remove noise",
 		"titleActive": "Release to remove noise",
 		"choose": "Choose photo",
-		"hint": "or paste one · JPEG, PNG or WebP",
+		"hint": "or paste one · JPEG, PNG, WebP, HEIC or AVIF",
 		"desktopOnly": "Works best on a computer. Large photos may be slow here."
 	},
 	"privacy": {
@@ -66,12 +66,17 @@
 		"wasm": "processor"
 	},
 	"error": {
-		"unsupported": "{{name}} isn't a format Hush can open yet. Use a JPEG, PNG or WebP photo.",
+		"unsupported": "{{name}} isn't a format Hush can open yet. Use a JPEG, PNG, WebP, HEIC or AVIF photo.",
+		"cmyk": "{{name}} is a CMYK JPEG, made for printing presses. Hush works on RGB photos: export it as an RGB JPEG and try again.",
+		"hdr": "{{name}} is an HDR photo. Hush saves standard 8-bit photos this version: export an SDR copy and try again.",
+		"animated": "{{name}} is animated. Hush removes noise from still photos: open a single frame instead.",
 		"decode": "{{name}} couldn't be opened. The file may be damaged. Export it again from your photo app and try once more.",
 		"tooLarge": "{{name}} is {{mp}} megapixels, more than this computer can process safely ({{limit}} MP). Resize it and try again.",
 		"model": "The noise model didn't download. Check your connection, then try again.",
 		"gpu": "The graphics chip stopped responding. Try again. If it keeps happening, use another browser.",
+		"memory": "This photo needs more graphics memory than this computer has free. Close other tabs and apps, then try again.",
 		"output": "Noise removal produced an unusable result, so nothing was saved. Try again, or open Hush in another browser.",
+		"encode": "{{name}} couldn't be saved: it needs more memory than this browser gives the encoder. Close other tabs and try again, or save it as PNG.",
 		"generic": "Something went wrong: {{message}}",
 		"retry": "Try again"
 	},

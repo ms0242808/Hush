@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import type { Backend, ModelManifest, TiledProgress } from '@hush/core';
+import type { Backend, ModelManifest, OutputSettings, Recipe, TiledProgress } from '@hush/core';
 import { ArrowLeft, ClipboardCopy, Play, ScanLine, Square } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CompareView, type CompareImages } from '@/components/compare-view';
@@ -8,10 +8,13 @@ import { Progress } from '@/components/ui/progress';
 import { Segmented } from '@/components/ui/segmented';
 import { Mark } from '@/components/wordmark';
 import { DEFAULT_TILE_SIZE } from '@/lib/defaults';
-import { proxy, startPipeline, type PipelineHandle } from '@/lib/pipeline';
+import { ACCEPT } from '@/lib/photo-input';
+import { proxy, startPipeline, type Pipeline, type PipelineHandle } from '@/lib/pipeline';
 import { cn } from '@/lib/utils';
-import type { OpenResult } from '@/worker/pipeline.worker';
+import type { FaultPlan } from '@/worker/adapters/inference';
+import type { OpenResult, ProcessResult } from '@/worker/pipeline.worker';
 import { loadEnvironment } from './environment';
+import { PipelineCheck } from './PipelineCheck';
 import {
 	describeAdapter,
 	toMarkdown,
@@ -50,10 +53,38 @@ interface BenchApi {
 	markdown: () => string;
 }
 
+/** The headless pipeline, for scripted checks (the end-to-end tests). Files travel as base64. */
+interface PipelineHarness {
+	process: (
+		name: string,
+		base64: string,
+		settings?: Partial<OutputSettings>,
+		params?: Recipe['ops'][number]['params'],
+	) => Promise<Omit<ProcessResult, 'bytes'> & { bytes: string }>;
+	processSynthetic: (width: number, height: number) => Promise<unknown>;
+	decode: (base64: string) => Promise<{ width: number; height: number; data: string }>;
+	injectFaults: (plan: FaultPlan) => Promise<void>;
+	sessionState: () => Promise<{ tileSize: number | null; recoveries: number }>;
+}
+
 declare global {
 	interface Window {
 		__hushBench?: BenchApi;
+		__hushPipeline?: PipelineHarness;
 	}
+}
+
+function toBase64(bytes: Uint8Array): string {
+	let binary = '';
+	for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+	return btoa(binary);
+}
+
+function fromBase64(base64: string): Uint8Array {
+	const binary = atob(base64);
+	const bytes = new Uint8Array(binary.length);
+	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+	return bytes;
 }
 
 function initialConfig(): BenchConfig {
@@ -184,6 +215,31 @@ export function BenchApp() {
 		[file, pipelineFor],
 	);
 
+	/** The current backend's pipeline with its model loaded, for whole-photo runs. */
+	const preparePipeline = useCallback(async (): Promise<Pipeline> => {
+		const { api } = pipelineFor(config.backend);
+		await api.prepare(
+			{
+				backend: config.backend,
+				modelId: config.modelId || null,
+				...(config.precision !== 'auto' && { precision: config.precision }),
+				...(config.threads && { threads: config.threads }),
+			},
+			proxy((received: number, total: number) =>
+				setStatus(
+					received < total
+						? {
+								text: `Downloading model · ${(received / 1e6).toFixed(0)} of ${(total / 1e6).toFixed(0)} MB`,
+								value: received / total,
+							}
+						: null,
+				),
+			),
+		);
+		setStatus(null);
+		return api;
+	}, [config, pipelineFor]);
+
 	/** Show the centre of the last result at 100%: a stage-sized crop, never the whole photo. */
 	const showPreview = useCallback(async (backend: Backend) => {
 		const api = handles.current[backend]?.api;
@@ -197,7 +253,7 @@ export function BenchApp() {
 			setImages((previous) => {
 				previous?.before.close();
 				previous?.after.close();
-				return crop.after ? { before: crop.before, after: crop.after } : null;
+				return crop.after ? { before: crop.before, after: crop.after, orientation: crop.orientation } : null;
 			});
 		} catch (reason) {
 			setError(`Preview: ${reason instanceof Error ? reason.message : String(reason)}`);
@@ -296,6 +352,35 @@ export function BenchApp() {
 			await seam({ image: '1mp' }, 512);
 		}
 	}, [config.backend, run, seam]);
+
+	useEffect(() => {
+		window.__hushPipeline = {
+			async process(name, base64, settings = {}, params) {
+				const api = await preparePipeline();
+				const recipe = params ? { schema: 1 as const, ops: [{ op: 'denoise', params }] } : null;
+				const result = await api.process(
+					new File([fromBase64(base64) as Uint8Array<ArrayBuffer>], name),
+					recipe,
+					settings,
+				);
+				return { ...result, bytes: toBase64(result.bytes) };
+			},
+			async processSynthetic(width, height) {
+				const api = await preparePipeline();
+				return api.processSynthetic(width, height);
+			},
+			async decode(base64) {
+				const { api } = pipelineFor(config.backend);
+				const image = await api.decode(fromBase64(base64));
+				return { width: image.width, height: image.height, data: toBase64(image.data) };
+			},
+			async injectFaults(plan) {
+				const api = await preparePipeline();
+				await api.injectFaults(plan);
+			},
+			sessionState: () => pipelineFor(config.backend).api.sessionState(),
+		};
+	}, [config.backend, pipelineFor, preparePipeline]);
 
 	// The same API, for scripted measurement runs (tools/bench/measure.ts).
 	useEffect(() => {
@@ -444,7 +529,7 @@ export function BenchApp() {
 							{config.image === 'file' && (
 								<input
 									type="file"
-									accept="image/jpeg,image/png,image/webp"
+									accept={ACCEPT}
 									aria-label="Photo to benchmark"
 									className="text-[12px] text-fg-muted file:mr-3 file:rounded-md file:border-0 file:bg-raised file:px-2.5 file:py-1.5 file:text-fg"
 									onChange={(event) => setFile(event.currentTarget.files?.[0] ?? null)}
@@ -524,6 +609,10 @@ export function BenchApp() {
 								</Button>
 							</div>
 						</div>
+					</Panel>
+
+					<Panel title="Pipeline check">
+						<PipelineCheck prepare={preparePipeline} disabled={busy || !manifest} onBusy={setBusy} />
 					</Panel>
 
 					<Panel title="Last result at 100%">

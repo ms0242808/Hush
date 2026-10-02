@@ -3,13 +3,21 @@ import type { CodecAdapter, OutputAdapter, SavedFile } from './adapters.ts';
 import { DecodeError, PhotoTooLargeError, SaveError } from './errors.ts';
 import { defaultOutputFormat, outputMimeType, outputName, type OutputFormat } from './formats.ts';
 import { hasGps } from './metadata/exif.ts';
-import { readPhoto, writePhotoMetadata, type ColourSource, type Zlib } from './metadata/photo.ts';
+import { readPhoto, writePhotoMetadata, type ColourSource, type PhotoInfo, type Zlib } from './metadata/photo.ts';
 import type { MetadataWarning } from './metadata/warnings.ts';
 import { xmpHasLocation } from './metadata/xmp.ts';
 import type { ImageOperation } from './operation.ts';
 import type { Recipe } from './recipe.ts';
 import type { TiledProgress, TiledStats } from './tiled.ts';
-import { CancelledError, type Bytes, type CancelSignal, type Clock, type Format, type Image8 } from './types.ts';
+import {
+	CancelledError,
+	type Bytes,
+	type CancelSignal,
+	type Clock,
+	type DecodedOrientation,
+	type Format,
+	type Image8,
+} from './types.ts';
 
 /** Export settings (§2.6, §5.3 export panel). */
 export interface OutputSettings {
@@ -165,61 +173,27 @@ export async function processPhoto(job: PhotoJob, context: PipelineContext): Pro
 
 	report('processing');
 	t = now();
-	let tiled: TiledStats | null = null;
-	let operationFloatBytes = 0;
-	for (const step of job.recipe.ops) {
-		const operation = context.operations[step.op];
-		if (!operation) throw new RangeError(`Operation "${step.op}" isn't loaded`);
-		const result = await operation.run({
-			input: image,
-			output: image,
-			params: step.params,
-			...(context.signal && { signal: context.signal }),
-			now,
-			onProgress: (tiles) => report('processing', tiles.tilesDone / tiles.tileCount, tiles),
-		});
-		tiled ??= result.stats;
-		operationFloatBytes = Math.max(operationFloatBytes, result.floatBytes);
-	}
+	const processed = await runRecipe(image, job.recipe, {
+		operations: context.operations,
+		...(context.signal && { signal: context.signal }),
+		now,
+		onProgress: (tiles) => report('processing', tiles.tilesDone / tiles.tileCount, tiles),
+	});
 	const processMs = now() - t;
 	checkCancelled();
 
 	report('encoding');
-	t = now();
-	const format = job.output.format === 'auto' ? defaultOutputFormat(info.format) : job.output.format;
-	const encoded = await context.codecs.encode(image, {
-		format,
-		quality: job.output.quality,
-		...(format === 'webp' && info.webp?.lossless && { lossless: true }),
-	});
-	const encodeMs = now() - t;
-
-	t = now();
-	const written = await writePhotoMetadata(
-		encoded,
-		info,
-		{
-			format,
-			software: context.software,
-			removeLocation: job.output.removeLocation,
-			orientation: decoded.orientation === 'applied' ? 1 : info.orientation,
-			width: image.width,
-			height: image.height,
-		},
-		context.zlib,
-	);
-	const metadataMs = now() - t;
+	const encoded = await encodePhoto(image, info, decoded.orientation, job, { ...context, now });
 	checkCancelled();
 
 	report('saving');
 	t = now();
-	const name = outputName(job.name, format, job.output.suffix);
-	const mimeType = outputMimeType(format);
+	const { name, mimeType, format } = encoded;
 	let saved: SavedFile;
 	try {
-		saved = await context.output.save(name, written.bytes, mimeType);
+		saved = await context.output.save(name, encoded.bytes, mimeType);
 	} catch (error) {
-		throw new SaveError(name, written.bytes, mimeType, error);
+		throw new SaveError(name, encoded.bytes, mimeType, error);
 	}
 	const saveMs = now() - t;
 	report('saving', 1);
@@ -228,29 +202,130 @@ export async function processPhoto(job: PhotoJob, context: PipelineContext): Pro
 		name,
 		mimeType,
 		format,
-		bytes: written.bytes,
+		bytes: encoded.bytes,
 		width: image.width,
 		height: image.height,
 		saved,
-		source: {
-			format: info.format,
-			width: info.width,
-			height: info.height,
-			bitDepth: info.bitDepth,
-			colour: info.colour,
-			hadLocation: (info.exif !== null && hasGps(info.exif)) || (info.xmp !== null && xmpHasLocation(info.xmp)),
-		},
-		warnings: [...new Set([...info.warnings, ...written.warnings])],
+		source: describeSource(info),
+		warnings: encoded.warnings,
 		stats: {
 			readMs,
 			decodeMs,
 			processMs,
-			encodeMs,
-			metadataMs,
+			encodeMs: encoded.encodeMs,
+			metadataMs: encoded.metadataMs,
 			saveMs,
 			totalMs: now() - started,
-			tiled,
-			peakFloatBytes: (tiled?.peakFloatBytes ?? 0) + operationFloatBytes,
+			tiled: processed.tiled,
+			peakFloatBytes: (processed.tiled?.peakFloatBytes ?? 0) + processed.floatBytes,
 		},
+	};
+}
+
+export interface RecipeRunOptions {
+	operations: Readonly<Record<string, ImageOperation>>;
+	signal?: CancelSignal;
+	now?: Clock;
+	onProgress?: (tiles: TiledProgress) => void;
+	/** Where the result goes; by default over the input, in place. */
+	output?: Image8;
+}
+
+/**
+ * Run a recipe's steps over an image. The first step reads `image` and
+ * writes `output`; later ones (none yet) work on that result in place.
+ */
+export async function runRecipe(
+	image: Image8,
+	recipe: Recipe,
+	options: RecipeRunOptions,
+): Promise<{ tiled: TiledStats | null; floatBytes: number }> {
+	const output = options.output ?? image;
+	let tiled: TiledStats | null = null;
+	let floatBytes = 0;
+	let input = image;
+	for (const step of recipe.ops) {
+		const operation = options.operations[step.op];
+		if (!operation) throw new RangeError(`Operation "${step.op}" isn't loaded`);
+		const result = await operation.run({
+			input,
+			output,
+			params: step.params,
+			...(options.signal && { signal: options.signal }),
+			...(options.now && { now: options.now }),
+			...(options.onProgress && { onProgress: options.onProgress }),
+		});
+		tiled ??= result.stats;
+		floatBytes = Math.max(floatBytes, result.floatBytes);
+		input = output;
+	}
+	return { tiled, floatBytes };
+}
+
+export interface EncodedPhoto {
+	name: string;
+	mimeType: string;
+	format: OutputFormat;
+	bytes: Bytes;
+	warnings: MetadataWarning[];
+	encodeMs: number;
+	metadataMs: number;
+}
+
+/**
+ * Encode processed pixels in the chosen format and put the source's
+ * metadata back (§2.6). `orientation` says whether the decoder had already
+ * turned the pixels upright.
+ */
+export async function encodePhoto(
+	image: Image8,
+	info: PhotoInfo,
+	orientation: DecodedOrientation,
+	job: Pick<PhotoJob, 'name' | 'output'>,
+	context: { codecs: CodecAdapter; zlib: Zlib; software: string; now?: Clock },
+): Promise<EncodedPhoto> {
+	const now = context.now ?? (() => 0);
+	let t = now();
+	const format = job.output.format === 'auto' ? defaultOutputFormat(info.format) : job.output.format;
+	const encoded = await context.codecs.encode(image, {
+		format,
+		quality: job.output.quality,
+		...(format === 'webp' && info.webp?.lossless && { lossless: true }),
+	});
+	const encodeMs = now() - t;
+	t = now();
+	const written = await writePhotoMetadata(
+		encoded,
+		info,
+		{
+			format,
+			software: context.software,
+			removeLocation: job.output.removeLocation,
+			orientation: orientation === 'applied' ? 1 : info.orientation,
+			width: image.width,
+			height: image.height,
+		},
+		context.zlib,
+	);
+	return {
+		name: outputName(job.name, format, job.output.suffix),
+		mimeType: outputMimeType(format),
+		format,
+		bytes: written.bytes,
+		warnings: [...new Set([...info.warnings, ...written.warnings])],
+		encodeMs,
+		metadataMs: now() - t,
+	};
+}
+
+/** What the result reports about its source. */
+export function describeSource(info: PhotoInfo): PhotoResult['source'] {
+	return {
+		format: info.format,
+		width: info.width,
+		height: info.height,
+		bitDepth: info.bitDepth,
+		colour: info.colour,
+		hadLocation: (info.exif !== null && hasGps(info.exif)) || (info.xmp !== null && xmpHasLocation(info.xmp)),
 	};
 }

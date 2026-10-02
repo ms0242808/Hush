@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
+import type { Orientation } from '@hush/core';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { displaySize, orientationMatrix } from '@/lib/orientation';
 
 export interface CompareImages {
 	before: ImageBitmap;
 	after: ImageBitmap;
+	/** How to draw the stored pixels upright. The pixels themselves are never rotated (§2.6). */
+	orientation?: Orientation;
 }
 
 interface CompareViewProps {
@@ -59,20 +63,25 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 		[t],
 	);
 
-	// Draw the bitmaps whenever they change.
+	// Draw the bitmaps whenever they change, turned upright. Quarter turns and flips
+	// move whole pixels, so 100% stays one photo pixel per device pixel.
 	useEffect(() => {
 		if (!images) return;
+		const orientation = images.orientation ?? 1;
 		for (const [canvas, bitmap] of [
 			[beforeCanvas.current, images.before],
 			[afterCanvas.current, images.after],
 		] as const) {
 			if (!canvas) continue;
-			canvas.width = bitmap.width;
-			canvas.height = bitmap.height;
+			const size = displaySize(bitmap.width, bitmap.height, orientation);
+			canvas.width = size.width;
+			canvas.height = size.height;
 			const context = canvas.getContext('2d');
 			if (!context) continue;
 			context.imageSmoothingEnabled = false;
+			context.setTransform(...orientationMatrix(orientation, bitmap.width, bitmap.height));
 			context.drawImage(bitmap, 0, 0);
+			context.setTransform(1, 0, 0, 1, 0, 0);
 		}
 	}, [images, box]);
 
@@ -82,8 +91,9 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 		if (!element || !images) return;
 		const dpr = window.devicePixelRatio || 1;
 		const rect = element.getBoundingClientRect();
-		const width = images.before.width / dpr;
-		const height = images.before.height / dpr;
+		const shown = displaySize(images.before.width, images.before.height, images.orientation ?? 1);
+		const width = shown.width / dpr;
+		const height = shown.height / dpr;
 		// Snap the frame's position in the viewport to whole device pixels, then express it
 		// relative to the stage, so it stays put when the page scrolls.
 		const snap = (value: number) => Math.round(value * dpr) / dpr;

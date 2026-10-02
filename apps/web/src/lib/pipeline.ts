@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import * as Comlink from 'comlink';
+import './worker-errors.ts';
 import type { PipelineApi } from '../worker/pipeline.worker.ts';
 
 export type Pipeline = Comlink.Remote<PipelineApi>;

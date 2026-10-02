@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import type { Image8 } from '@hush/core';
 import { describe, expect, it } from 'vitest';
-import { sniffFormat } from './codecs';
+import { sniffFormat } from '../lib/formats';
 import { clampRect, cropImage, MAX_PREVIEW_SIDE, psnr } from './pixels';
 import { isFinitePrefix } from './validate';
 
@@ -9,10 +9,12 @@ describe('sniffFormat: by content, never by name', () => {
 	const bytes = (...values: number[]) => Uint8Array.from(values);
 	const ascii = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0));
 
-	it('recognises JPEG, PNG and WebP', () => {
+	it('recognises JPEG, PNG, WebP, HEIC and AVIF', () => {
 		expect(sniffFormat(bytes(0xff, 0xd8, 0xff, 0xe0))).toBe('jpeg');
-		expect(sniffFormat(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a))).toBe('png');
+		expect(sniffFormat(bytes(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a))).toBe('png');
 		expect(sniffFormat(ascii('RIFF\0\0\0\0WEBPVP8 '))).toBe('webp');
+		expect(sniffFormat(ascii('\0\0\0\x18ftypheic\0\0\0\0mif1heic'))).toBe('heic');
+		expect(sniffFormat(ascii('\0\0\0\x18ftypavif\0\0\0\0mif1avif'))).toBe('avif');
 	});
 
 	it('rejects anything else, and short files', () => {

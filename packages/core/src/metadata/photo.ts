@@ -92,6 +92,11 @@ export async function readPhoto(bytes: Bytes, zlib: Zlib): Promise<PhotoInfo> {
 	}
 }
 
+/** A photo with no metadata at all: synthetic test photos, pixels from elsewhere. */
+export function blankPhotoInfo(format: Format, width: number, height: number): PhotoInfo {
+	return { ...base(format), width, height };
+}
+
 const base = (format: Format): Omit<PhotoInfo, 'width' | 'height'> => ({
 	format,
 	bitDepth: 8,

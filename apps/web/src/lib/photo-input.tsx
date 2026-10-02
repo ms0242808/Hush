@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export const ACCEPT = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+export const ACCEPT =
+	'image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif';
 
 function firstFile(list: FileList | null | undefined): File | null {
 	return list && list.length > 0 ? list[0]! : null;

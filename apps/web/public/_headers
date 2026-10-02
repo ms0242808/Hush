@@ -21,6 +21,8 @@
   Cache-Control: public, max-age=31536000, immutable
 /ort/*
   Cache-Control: public, max-age=31536000, immutable
+/codecs/*
+  Cache-Control: public, max-age=31536000, immutable
 /models/parts/*
   Cache-Control: public, max-age=31536000, immutable
 /fonts/*

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { codecAssets } from './build/codec-assets.ts';
 import { models } from './build/models.ts';
 import { locateOrt, ortAssets } from './build/ort-assets.ts';
 
@@ -18,7 +19,7 @@ const isolation = {
 };
 
 export default defineConfig({
-	plugins: [react(), tailwindcss(), ortAssets(), models(here)],
+	plugins: [react(), tailwindcss(), ortAssets(), codecAssets(), models(here)],
 	resolve: {
 		alias: [
 			{ find: '@', replacement: path.join(here, 'src') },
@@ -31,8 +32,8 @@ export default defineConfig({
 	define: {
 		__HUSH_VERSION__: JSON.stringify(process.env['HUSH_VERSION'] ?? '0.0.0-dev'),
 	},
-	// Workers are bundled separately and need the virtual ORT module too.
-	worker: { format: 'es', plugins: () => [ortAssets()] },
+	// Workers are bundled separately and need the virtual asset modules too.
+	worker: { format: 'es', plugins: () => [ortAssets(), codecAssets()] },
 	build: {
 		target: 'es2023',
 		manifest: true,
@@ -49,6 +50,6 @@ export default defineConfig({
 	preview: { headers: isolation },
 	optimizeDeps: {
 		// Pre-bundling breaks their `new URL('x.wasm', import.meta.url)` lookups.
-		exclude: ['onnxruntime-web', '@jsquash/jpeg', '@jsquash/png', '@jsquash/webp'],
+		exclude: ['onnxruntime-web', '@jsquash/jpeg', '@jsquash/png', '@jsquash/webp', '@jsquash/avif'],
 	},
 });

@@ -30,6 +30,16 @@ export class DecodeError extends Error {
 	}
 }
 
+/** The encoder couldn't write the processed photo, even after retrying with less memory. */
+export class EncodeError extends Error {
+	readonly format: string;
+	constructor(format: string, cause?: unknown) {
+		super(cause instanceof Error ? cause.message : `Couldn't encode the ${format} file`);
+		this.name = 'EncodeError';
+		this.format = format;
+	}
+}
+
 /** Over the §2.9 limit for this device: refused before decoding, never a crashed tab. */
 export class PhotoTooLargeError extends Error {
 	readonly megapixels: number;

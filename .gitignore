@@ -14,6 +14,7 @@ apps/web/.models/
 tools/models/.cache/
 tools/models/out/
 tools/models/.venv/
+tools/fixtures/.venv/
 # ONNX Runtime's shape-inference scratch files, left behind if a tool crashes
 tools/models/*.data
 tools/models/*_temp.onnx
@@ -44,5 +45,6 @@ Thumbs.db
 !.vscode/extensions.json
 *.log
 
-# ONNX Runtime files copied (and split) from node_modules at build time
+# ONNX Runtime and codec files copied (and split) from node_modules at build time
 apps/web/public/ort/
+apps/web/public/codecs/
