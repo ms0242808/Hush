@@ -31,6 +31,7 @@ export interface TilePlan {
 	width: number;
 	height: number;
 	overlap: number;
+	padMultiple: number;
 	x: TileAxis;
 	y: TileAxis;
 	tileCount: number;
@@ -82,7 +83,53 @@ export function planAxis(length: number, options: TileOptions): TileAxis {
 export function planTiles(width: number, height: number, options: TileOptions): TilePlan {
 	const x = planAxis(width, options);
 	const y = planAxis(height, options);
-	return { width, height, overlap: options.overlap, x, y, tileCount: x.starts.length * y.starts.length };
+	return {
+		width,
+		height,
+		overlap: options.overlap,
+		padMultiple: options.padMultiple,
+		x,
+		y,
+		tileCount: x.starts.length * y.starts.length,
+	};
+}
+
+/**
+ * The smallest tile worth running: below this, overlap dominates and
+ * out-of-memory backoff gives up rather than crawl.
+ */
+export function minTileSize(overlap: number, padMultiple: number): number {
+	return roundUpTo(Math.max(128, 2 * overlap + padMultiple), padMultiple);
+}
+
+export interface TileSizeInput {
+	/** The backend's preferred ceiling (from measurements). */
+	preferred: number;
+	padMultiple: number;
+	overlap: number;
+	/** Bytes the model needs per input pixel for its largest intermediate tensor. */
+	bytesPerPixel?: number;
+	/** The largest single GPU buffer (and binding) the device allows. */
+	maxBufferBytes?: number;
+	/** A smaller ceiling learned earlier in the session, after running out of memory. */
+	remembered?: number | null;
+}
+
+/**
+ * The tile ceiling for this device (§2.3): the preferred size, capped so the
+ * model's largest tensor fits the device's buffer limits, and never above a
+ * size that already ran out of memory this session. The first tile is the
+ * probe: if it still fails, the tiler halves from there.
+ */
+export function chooseTileSize(input: TileSizeInput): number {
+	const { padMultiple, overlap } = input;
+	let size = input.preferred;
+	if (input.remembered) size = Math.min(size, input.remembered);
+	if (input.bytesPerPixel && input.maxBufferBytes) {
+		size = Math.min(size, Math.floor(Math.sqrt((input.maxBufferBytes * 0.9) / input.bytesPerPixel)));
+	}
+	size = Math.floor(size / padMultiple) * padMultiple;
+	return Math.max(size, minTileSize(overlap, padMultiple));
 }
 
 /**
