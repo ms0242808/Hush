@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
+import type { Orientation } from '@hush/core';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { displaySize, orientationMatrix } from '@/lib/orientation';
 
 export interface CompareImages {
 	before: ImageBitmap;
 	after: ImageBitmap;
+	/** How to draw the stored pixels upright. The pixels themselves are never rotated (§2.6). */
+	orientation?: Orientation;
 }
 
 interface CompareViewProps {
@@ -17,6 +21,8 @@ interface CompareViewProps {
 }
 
 const KEY_STEP = 0.01;
+/** Narrower than this (CSS px), the Before and After labels would overlap. */
+const LABELS_MIN_WIDTH = 200;
 const KEY_STEP_LARGE = 0.1;
 
 /**
@@ -59,20 +65,25 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 		[t],
 	);
 
-	// Draw the bitmaps whenever they change.
+	// Draw the bitmaps whenever they change, turned upright. Quarter turns and flips
+	// move whole pixels, so 100% stays one photo pixel per device pixel.
 	useEffect(() => {
 		if (!images) return;
+		const orientation = images.orientation ?? 1;
 		for (const [canvas, bitmap] of [
 			[beforeCanvas.current, images.before],
 			[afterCanvas.current, images.after],
 		] as const) {
 			if (!canvas) continue;
-			canvas.width = bitmap.width;
-			canvas.height = bitmap.height;
+			const size = displaySize(bitmap.width, bitmap.height, orientation);
+			canvas.width = size.width;
+			canvas.height = size.height;
 			const context = canvas.getContext('2d');
 			if (!context) continue;
 			context.imageSmoothingEnabled = false;
+			context.setTransform(...orientationMatrix(orientation, bitmap.width, bitmap.height));
 			context.drawImage(bitmap, 0, 0);
+			context.setTransform(1, 0, 0, 1, 0, 0);
 		}
 	}, [images, box]);
 
@@ -82,8 +93,9 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 		if (!element || !images) return;
 		const dpr = window.devicePixelRatio || 1;
 		const rect = element.getBoundingClientRect();
-		const width = images.before.width / dpr;
-		const height = images.before.height / dpr;
+		const shown = displaySize(images.before.width, images.before.height, images.orientation ?? 1);
+		const width = shown.width / dpr;
+		const height = shown.height / dpr;
 		// Snap the frame's position in the viewport to whole device pixels, then express it
 		// relative to the stage, so it stays put when the page scrolls.
 		const snap = (value: number) => Math.round(value * dpr) / dpr;
@@ -179,10 +191,13 @@ export function CompareView({ images, showOriginal, onStageResize }: CompareView
 						<canvas ref={afterCanvas} aria-label={t('result.after')} className="absolute inset-0 size-full" />
 					</div>
 
-					<span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-white/90">
-						{t('result.before')}
-					</span>
-					{!showOriginal && (
+					{/* Labels only where both fit: on a small photo at 100% they would run into each other. */}
+					{box.width >= LABELS_MIN_WIDTH && (
+						<span className="pointer-events-none absolute left-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-white/90">
+							{t('result.before')}
+						</span>
+					)}
+					{!showOriginal && box.width >= LABELS_MIN_WIDTH && (
 						<span className="pointer-events-none absolute right-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-white/90">
 							{t('result.after')}
 						</span>

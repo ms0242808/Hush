@@ -55,8 +55,32 @@ export interface InferenceSession {
 	/**
 	 * Run the model on one tile. `input` is NCHW float32 RGB in [0, 1], shape
 	 * [1, 3, height, width]; the result has the same shape. The caller may reuse
-	 * `input` as soon as the returned promise settles.
+	 * `input` as soon as the returned promise settles. Failures the tiler can
+	 * act on are raised as InferenceError (out of memory, device lost, invalid
+	 * output).
 	 */
 	run(input: Float32Array, width: number, height: number): Promise<Float32Array>;
+	/**
+	 * After a lost device: build a new device and session in place, so the
+	 * next `run` works again (§2.3). Absent where devices can't be lost.
+	 */
+	recover?(): Promise<void>;
+	/** The largest single buffer the device allows (GPUs), for sizing tiles; absent when unlimited. */
+	readonly maxBufferBytes?: number | null;
 	dispose(): Promise<void>;
+}
+
+/** How a codec handed back the pixels of a photo whose container says to rotate or mirror it. */
+export type DecodedOrientation = 'as-stored' | 'applied';
+
+export interface DecodedImage {
+	/** 8-bit this phase. */
+	image: RawImage;
+	/**
+	 * 'applied' when the codec already turned the pixels upright (libheif
+	 * applies HEIF rotation and mirroring); 'as-stored' otherwise. Hush itself
+	 * never rotates pixels (§2.6), but must not keep a rotation tag on pixels
+	 * that were already rotated.
+	 */
+	orientation: DecodedOrientation;
 }

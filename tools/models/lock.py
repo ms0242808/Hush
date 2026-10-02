@@ -71,7 +71,9 @@ def main() -> None:
 				'family': 'nafnet',
 				'task': 'denoise',
 				'label': {'en': f'NAFNet (SIDD, width {spec["width"]})', 'zh-Hant': f'NAFNet（SIDD，寬度 {spec["width"]}）'},
-				'tile': {'padMultiple': 16, 'overlap': 48},
+				# channels: the widest tensor kept at full resolution (each block expands to 2 × width),
+				# which with the precision sizes a tile's largest GPU buffer.
+				'tile': {'padMultiple': 16, 'overlap': 48, 'channels': 2 * spec['width']},
 				'input': {'range': [0, 1], 'layout': 'NCHW', 'colour': 'RGB'},
 				'licence': LICENCE,
 				'variants': variants,

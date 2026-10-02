@@ -13,7 +13,16 @@ export function formatMegabytes(bytes: number, locale: string): string {
 }
 
 export function formatSeconds(ms: number, locale: string): string {
-	return new Intl.NumberFormat(locale, { maximumFractionDigits: ms < 10_000 ? 1 : 0 }).format(ms / 1000);
+	const format = new Intl.NumberFormat(locale, { maximumFractionDigits: ms < 10_000 ? 1 : 0 });
+	// Under a tenth of a second, "0" would read as "nothing happened".
+	return ms > 0 && ms < 100 ? `< ${format.format(0.1)}` : format.format(ms / 1000);
+}
+
+/** File sizes the way people read them: "28.6 KB", "59 MB". */
+export function formatBytes(bytes: number, locale: string): string {
+	return bytes < 1e6
+		? `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1e3)} KB`
+		: formatMegabytes(bytes, locale);
 }
 
 /** `IMG_2041.JPG` → `IMG_2041-denoised.jpg`. */

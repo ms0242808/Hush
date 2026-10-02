@@ -28,18 +28,19 @@ pnpm fetch-models --from tools/models/out        # until the Hugging Face repo i
 The exports are deterministic: the same checkpoints and tool versions give the
 same bytes, so `models.lock.json` doubles as a reproducibility check.
 
-| Script                | What it does                                                                                                                                                             |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `nafnet.py`           | NAFNet, reimplemented from the paper for export. No NAFNet or BasicSR source is vendored; parameter names match the official checkpoints, which load with `strict=True`. |
-| `checkpoints.py`      | The official Google Drive links from the NAFNet README and their pinned sha256.                                                                                          |
-| `export.py`           | ONNX export (opset 17), fp16 conversion, comparison with PyTorch, fp16 overflow audit.                                                                                   |
-| `quantize.py`         | Static QDQ int8 quantization of the convolutions, calibrated on 64 noisy SIDD crops.                                                                                     |
-| `verify_reference.py` | Runs every export on NAFNet's own `demo/noisy.png` and compares with its published `demo/denoise_img.png`.                                                               |
-| `evaluate.py`         | PSNR and SSIM on the 1,280 SIDD validation crops.                                                                                                                        |
-| `lock.py`             | Writes `models.lock.json` from `out/`.                                                                                                                                   |
-| `publish_hf.py`       | Uploads the locked files and a model card (`MODEL_CARD.md`) to Hugging Face, then pins the commit.                                                                       |
-| `make_test_models.py` | The two tiny models CI uses (`test-models/`): one inverts colours exactly, one returns NaN.                                                                              |
-| `fetch-models.ts`     | Node, no Python: fetch, verify sha256, split into ≤ 24 MiB parts, write `manifest.json`.                                                                                 |
+| Script                | What it does                                                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nafnet.py`           | NAFNet, reimplemented from the paper for export. No NAFNet or BasicSR source is vendored; parameter names match the official checkpoints, which load with `strict=True`.                          |
+| `checkpoints.py`      | The official Google Drive links from the NAFNet README and their pinned sha256.                                                                                                                   |
+| `export.py`           | ONNX export (opset 17), fp16 conversion, comparison with PyTorch, fp16 overflow audit.                                                                                                            |
+| `quantize.py`         | Static QDQ int8 quantization of the convolutions, calibrated on 64 noisy SIDD crops.                                                                                                              |
+| `verify_reference.py` | Runs every export on NAFNet's own `demo/noisy.png` and compares with its published `demo/denoise_img.png`.                                                                                        |
+| `evaluate.py`         | PSNR and SSIM on the 1,280 SIDD validation crops.                                                                                                                                                 |
+| `lock.py`             | Writes `models.lock.json` from `out/`.                                                                                                                                                            |
+| `publish_hf.py`       | Uploads the locked files and a model card (`MODEL_CARD.md`) to Hugging Face, then pins the commit.                                                                                                |
+| `make_test_models.py` | The two tiny models CI uses (`test-models/`): one inverts colours exactly, one returns NaN.                                                                                                       |
+| `make_golden.py`      | Golden images for the browser pipeline (`apps/web/e2e/fixtures/golden/`): a noisy scene, NAFNet's output for it in one pass, and tiled the way Hush tiles it, all on ONNX Runtime's CPU provider. |
+| `fetch-models.ts`     | Node, no Python: fetch, verify sha256, split into ≤ 24 MiB parts, write `manifest.json`.                                                                                                          |
 
 ## What was verified
 

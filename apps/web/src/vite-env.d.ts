@@ -16,3 +16,11 @@ declare module 'virtual:ort-assets' {
 	};
 	export default assets;
 }
+
+declare module 'virtual:codec-assets' {
+	const assets: {
+		/** libheif-js, served as its own file (LGPL) and imported by URL. */
+		libheif: { version: string; module: string };
+	};
+	export default assets;
+}

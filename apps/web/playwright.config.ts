@@ -12,6 +12,8 @@ const port = 8790;
 
 export default defineConfig({
 	testDir: 'e2e',
+	// e2e/real needs the release model and a GPU: `pnpm e2e:real`, locally.
+	testIgnore: ['real/**'],
 	timeout: 60_000,
 	fullyParallel: true,
 	forbidOnly: !!process.env['CI'],

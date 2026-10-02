@@ -29,7 +29,12 @@ export interface ModelEntry {
 	task: string;
 	label: Record<string, string>;
 	variants: ModelVariant[];
-	tile: { padMultiple: number; overlap: number };
+	/**
+	 * Tiling conventions. `channels` is the widest tensor the model keeps at
+	 * full resolution (64 for NAFNet width 32), which with the precision gives
+	 * the memory a tile needs per pixel; absent, Hush assumes 64.
+	 */
+	tile: { padMultiple: number; overlap: number; channels?: number };
 	input: { range: [number, number]; layout: 'NCHW'; colour: 'RGB' };
 	source: { repo: string; revision: string };
 	licence: { code: string; weights: string; trainingData: string };
@@ -123,6 +128,7 @@ function parseModel(value: unknown, path: string): ModelEntry {
 		tile: {
 			padMultiple: positiveInteger(tile['padMultiple'], `${path}.tile.padMultiple`),
 			overlap: positiveInteger(tile['overlap'], `${path}.tile.overlap`, true),
+			...(tile['channels'] !== undefined && { channels: positiveInteger(tile['channels'], `${path}.tile.channels`) }),
 		},
 		input: { range: [range[0] as number, range[1] as number], layout: 'NCHW', colour: 'RGB' },
 		source: {
@@ -170,6 +176,11 @@ export function pickModel(manifest: ModelManifest, task: string, overrideId?: st
 	const model = manifest.models.find((m) => m.id === activeId);
 	if (!model) throw new ManifestError(`active.${task}`, 'is not set');
 	return model;
+}
+
+/** Bytes of GPU memory the model's largest full-resolution tensor needs per input pixel. */
+export function bytesPerPixel(model: Pick<ModelEntry, 'tile'>, variant: Pick<ModelVariant, 'precision'>): number {
+	return (model.tile.channels ?? 64) * (variant.precision === 'fp16' ? 2 : 4);
 }
 
 export interface VariantNeeds {

@@ -44,6 +44,7 @@ export default defineConfig(
 		ignores: [
 			'**/dist/**',
 			'**/dist-e2e/**',
+			'**/dist-real/**',
 			'**/node_modules/**',
 			'**/.wrangler/**',
 			'**/coverage/**',
@@ -51,7 +52,9 @@ export default defineConfig(
 			'**/test-results/**',
 			'apps/web/.models/**',
 			'apps/web/public/ort/**',
+			'apps/web/public/codecs/**',
 			'tools/models/.venv/**',
+			'tools/fixtures/.venv/**',
 			'tools/models/.cache/**',
 			'tools/models/out/**',
 			'.claude/**',

@@ -24,21 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { chromium, firefox, webkit, type Browser, type BrowserType, type Page } from '@playwright/test';
-
-/** The slice of the bench page's window.__hushBench this script drives. */
-interface BenchHandle {
-	ready: Promise<void>;
-	run(config: Record<string, unknown>, repeat?: number): Promise<unknown[]>;
-	seam(config: Record<string, unknown>, size?: number): Promise<unknown>;
-	environment(): unknown;
-	markdown(): string;
-}
-
-declare global {
-	interface Window {
-		__hushBench?: BenchHandle;
-	}
-}
+import '../e2e/harness.ts';
 
 interface Step {
 	kind: 'run' | 'seam';

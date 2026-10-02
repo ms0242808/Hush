@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { fitsDevice, MAX_MEGAPIXELS, deviceClass, pickModel, pickVariant, type Backend } from '@hush/core';
+import { pickModel, pickVariant, type Backend, type Orientation } from '@hush/core';
 import { Check, Download, ImagePlus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,12 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Wordmark } from '@/components/wordmark';
 import { detectCapabilities, type Capabilities } from '@/lib/capabilities';
-import { DEFAULT_TILE_SIZE, isSaveData, JPEG_QUALITY, modelOverride } from '@/lib/defaults';
+import { isSaveData, modelOverride } from '@/lib/defaults';
 import { sniffFile } from '@/lib/formats';
+import { storedCropSize } from '@/lib/orientation';
 import { useFilePicker, useWindowDrop } from '@/lib/photo-input';
 import { proxy, startPipeline, type PipelineHandle } from '@/lib/pipeline';
-import { formatMegabytes, formatSeconds, outputName } from '@/lib/utils';
-import { describeError, isCancelled } from './errors';
+import { formatMegabytes, formatSeconds } from '@/lib/utils';
+import { describeError, isCancelled, isRetryable } from './errors';
 
 type Working =
 	| { step: 'opening' }
@@ -38,7 +39,7 @@ type Stage =
 			saved: string | null;
 			exporting: boolean;
 	  }
-	| { kind: 'error'; file: File | null; message: string };
+	| { kind: 'error'; file: File | null; message: string; retry: boolean };
 
 export function App() {
 	const { t, i18n } = useTranslation();
@@ -49,7 +50,7 @@ export function App() {
 	const capabilitiesPromise = useRef<Promise<Capabilities> | null>(null);
 	const pipeline = useRef<PipelineHandle | null>(null);
 	const run = useRef(0);
-	const imageSize = useRef<{ width: number; height: number } | null>(null);
+	const imageSize = useRef<{ width: number; height: number; orientation: Orientation } | null>(null);
 	const locale = i18n.resolvedLanguage ?? 'en';
 
 	useEffect(() => {
@@ -80,56 +81,66 @@ export function App() {
 				// Not a photo? Say so before downloading anything.
 				if (!(await sniffFile(file))) {
 					settled = true;
-					setStage({ kind: 'error', file, message: t('error.unsupported', { name: file.name }) });
+					setStage({ kind: 'error', file, message: t('error.unsupported', { name: file.name }), retry: false });
 					return;
 				}
 				const caps = await (capabilitiesPromise.current ??= detectCapabilities());
-				pipeline.current ??= startPipeline();
-				const { api } = pipeline.current;
 
-				const manifest = await api.manifest();
-				const model = pickModel(manifest, 'denoise', modelOverride());
-				let backend = caps.assessment.backend;
-				const probe = backend === 'webgpu' ? await api.probe() : null;
-				if (backend === 'webgpu' && probe?.webgpu !== 'adapter') backend = 'wasm'; // no WebGPU inside workers here
-				const variant = pickVariant(model, { backend, shaderF16: probe?.shaderF16 ?? false });
-				const cached = await api.isCached(variant.sha256);
-				if (!live()) return;
-				if (!cached && !confirmed && isSaveData()) {
-					setStage({ kind: 'confirm', file, bytes: variant.bytes });
-					return;
-				}
+				// WebGPU first when the browser has it; the processor if it isn't usable here (§2.10).
+				const open = async (backend: Backend, confirmedDownload: boolean): Promise<'confirm' | 'ready' | null> => {
+					pipeline.current ??= startPipeline();
+					const { api } = pipeline.current;
+					const manifest = await api.manifest();
+					const model = pickModel(manifest, 'denoise', modelOverride());
+					const probe = backend === 'webgpu' ? await api.probe() : null;
+					if (backend === 'webgpu' && probe?.webgpu !== 'adapter') return null; // no WebGPU inside workers here
+					const variant = pickVariant(model, { backend, shaderF16: probe?.shaderF16 ?? false });
+					const cached = await api.isCached(variant.sha256);
+					if (!live()) return 'ready';
+					if (!cached && !confirmedDownload && isSaveData()) {
+						setStage({ kind: 'confirm', file, bytes: variant.bytes });
+						return 'confirm';
+					}
+					if (!cached) {
+						setStage({
+							kind: 'working',
+							file,
+							working: { step: 'model', received: 0, total: variant.bytes, firstTime: true },
+						});
+					}
+					const [, opened] = await Promise.all([
+						api.prepare(
+							{ backend, modelId: model.id },
+							proxy((received: number, total: number) => {
+								if (live() && !cached) {
+									setStage({ kind: 'working', file, working: { step: 'model', received, total, firstTime: true } });
+								}
+							}),
+						),
+						api.openFile(file),
+					]);
+					imageSize.current = { width: opened.width, height: opened.height, orientation: opened.orientation };
+					return 'ready';
+				};
 
-				if (!cached) {
-					setStage({
-						kind: 'working',
-						file,
-						working: { step: 'model', received: 0, total: variant.bytes, firstTime: true },
-					});
+				let state: 'confirm' | 'ready' | null = null;
+				if (caps.assessment.backend === 'webgpu') {
+					try {
+						state = await open('webgpu', confirmed);
+					} catch (error) {
+						if (!usableElsewhere(error)) throw error;
+						console.warn('WebGPU failed; using the processor instead.', error);
+						pipeline.current?.terminate();
+						pipeline.current = null;
+					}
 				}
-				const [, opened] = await Promise.all([
-					api.prepare(
-						{ backend, modelId: model.id },
-						proxy((received: number, total: number) => {
-							if (live() && !cached) {
-								setStage({ kind: 'working', file, working: { step: 'model', received, total, firstTime: true } });
-							}
-						}),
-					),
-					api.openFile(file),
-				]);
-				if (!live()) return;
-				if (!fitsDevice(opened.width, opened.height, caps.probe.deviceMemory)) {
-					const limit = MAX_MEGAPIXELS[deviceClass(caps.probe.deviceMemory)];
-					const mp = Math.round((opened.width * opened.height) / 1e6);
-					setStage({ kind: 'error', file, message: t('error.tooLarge', { name: file.name, mp, limit }) });
-					return;
-				}
-				imageSize.current = { width: opened.width, height: opened.height };
+				state ??= await open('wasm', confirmed);
+				if (!live() || state === 'confirm') return;
 
 				setStage({ kind: 'working', file, working: { step: 'denoise', done: 0, total: 0, fraction: 0 } });
+				const { api } = pipeline.current!;
 				const result = await api.run(
-					{ tileSize: DEFAULT_TILE_SIZE[backend] },
+					{},
 					proxy((progress: { tilesDone: number; tileCount: number; bandsDone: number; bandCount: number }) => {
 						if (!live()) return;
 						setStage({
@@ -164,7 +175,7 @@ export function App() {
 					return;
 				}
 				console.error(error);
-				setStage({ kind: 'error', file, message: describeError(error, t, file.name) });
+				setStage({ kind: 'error', file, message: describeError(error, t, file.name), retry: isRetryable(error) });
 			}
 		},
 		[replaceImages, t],
@@ -179,17 +190,21 @@ export function App() {
 			const size = imageSize.current;
 			const api = pipeline.current?.api;
 			if (!size || !api) return;
-			const width = Math.min(device.width, size.width);
-			const height = Math.min(device.height, size.height);
+			const { width, height } = storedCropSize(device, size, size.orientation);
 			try {
 				const crop = await api.crop({ x: (size.width - width) / 2, y: (size.height - height) / 2, width, height });
-				if (crop.after) replaceImages({ before: crop.before, after: crop.after });
+				if (crop.after) replaceImages({ before: crop.before, after: crop.after, orientation: crop.orientation });
 				else crop.before.close();
 			} catch (error) {
 				console.error(error);
 				setStage((current) =>
 					current.kind === 'done'
-						? { kind: 'error', file: current.file, message: describeError(error, t, current.file.name) }
+						? {
+								kind: 'error',
+								file: current.file,
+								message: describeError(error, t, current.file.name),
+								retry: isRetryable(error),
+							}
 						: current,
 				);
 			}
@@ -202,9 +217,8 @@ export function App() {
 		const done = stage;
 		setStage({ ...done, exporting: true });
 		try {
-			const { bytes } = await pipeline.current.api.exportJpeg(JPEG_QUALITY);
-			const name = outputName(done.file.name);
-			const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'image/jpeg' }));
+			const { bytes, name, mimeType } = await pipeline.current.api.exportPhoto();
+			const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: mimeType }));
 			const link = document.createElement('a');
 			link.href = url;
 			link.download = name;
@@ -212,7 +226,12 @@ export function App() {
 			window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 			setStage({ ...done, exporting: false, saved: name });
 		} catch (error) {
-			setStage({ kind: 'error', file: done.file, message: describeError(error, t, done.file.name) });
+			setStage({
+				kind: 'error',
+				file: done.file,
+				message: describeError(error, t, done.file.name),
+				retry: isRetryable(error),
+			});
 		}
 	}, [stage, t]);
 
@@ -332,8 +351,14 @@ export function App() {
 							{stage.message}
 						</p>
 						<div className="flex justify-end gap-2">
-							<Button onClick={() => setStage({ kind: 'empty' })}>{t('result.another')}</Button>
-							{stage.file && (
+							{/* Retrying only helps when the photo wasn't the problem. */}
+							<Button
+								variant={stage.retry && stage.file ? 'secondary' : 'primary'}
+								onClick={() => setStage({ kind: 'empty' })}
+							>
+								{t('result.another')}
+							</Button>
+							{stage.retry && stage.file && (
 								<Button variant="primary" onClick={() => stage.file && void process(stage.file)}>
 									{t('error.retry')}
 								</Button>
@@ -349,6 +374,22 @@ export function App() {
 			{picker.element}
 		</div>
 	);
+}
+
+/** Failures the processor path would share: the model, the photo, or the user stopping. */
+const NOT_THE_GPU = [
+	'ModelError',
+	'ModelIntegrityError',
+	'ManifestError',
+	'UnsupportedPhotoError',
+	'DecodeError',
+	'PhotoTooLargeError',
+	'CancelledError',
+];
+
+/** A WebGPU failure worth retrying on the processor (§2.10): anything that isn't about the model or the photo. */
+function usableElsewhere(error: unknown): boolean {
+	return !(error instanceof Error && NOT_THE_GPU.includes(error.name));
 }
 
 function Card({ children }: { children: React.ReactNode }) {

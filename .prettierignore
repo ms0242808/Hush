@@ -7,8 +7,11 @@ playwright-report/
 test-results/
 apps/web/.models/
 apps/web/public/ort/
+apps/web/public/codecs/
 dist-e2e/
+dist-real/
 tools/models/.venv/
+tools/fixtures/.venv/
 tools/models/.cache/
 tools/models/out/
 .claude/
