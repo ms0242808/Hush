@@ -230,7 +230,7 @@ export function Viewer({ session, photo }: { session: EditorSession; photo: Phot
 		const current = r.region;
 		const pending = loadingRegion.current;
 		if ((!current || !containsRect(current, visible)) && (!pending || !containsRect(pending, visible))) {
-			const rect = regionAround(visible, geometry);
+			const rect = regionAround(visible, geometry, undefined, r.maxRegionSide);
 			const ticket = ++regionTicket.current;
 			loadingRegion.current = rect;
 			void session.region(rect).then((region) => {

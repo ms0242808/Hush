@@ -152,11 +152,12 @@ export const MAX_REGION_SIDE = 4096;
  * The region of original pixels to load around what's visible: a margin on
  * every side so short pans don't wait for the worker, within MAX_REGION_SIDE.
  */
-export function regionAround(visible: Rect, photo: Photo, margin = 0.35): Rect {
+export function regionAround(visible: Rect, photo: Photo, margin = 0.35, maxSide = MAX_REGION_SIDE): Rect {
 	const { stored } = photo;
+	const limit = Math.min(maxSide, MAX_REGION_SIDE);
 	const axis = (start: number, length: number, total: number) => {
-		const want = Math.min(total, MAX_REGION_SIDE, Math.ceil(length * (1 + 2 * margin)));
-		const size = Math.max(Math.min(length, MAX_REGION_SIDE), want);
+		const want = Math.min(total, limit, Math.ceil(length * (1 + 2 * margin)));
+		const size = Math.max(Math.min(length, limit), want);
 		const centre = start + length / 2;
 		const from = Math.round(Math.min(total - size, Math.max(0, centre - size / 2)));
 		return [from, Math.min(size, total)] as const;

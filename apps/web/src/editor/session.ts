@@ -96,6 +96,7 @@ export class EditorSession {
 			estimateMs: null,
 			showOriginal: false,
 			zoom: 1,
+			reduced: false,
 			model: state.model.status === 'ready' ? { status: 'preparing' } : state.model,
 		}));
 		try {

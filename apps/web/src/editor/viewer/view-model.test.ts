@@ -117,6 +117,10 @@ describe('the viewer at 100% (§5.3)', () => {
 		const edge = regionAround({ x: 0, y: 0, width: 500, height: 400 }, photo45);
 		expect(edge.x).toBe(0);
 		expect(edge.y).toBe(0);
+		// A GPU that only takes 2048-pixel textures gets 2048-pixel regions.
+		const small = regionAround({ x: 2800, y: 2250, width: 2400, height: 1500 }, photo45, 0.35, 2048);
+		expect(small.width).toBe(2048);
+		expect(small.height).toBe(2048);
 	});
 
 	it('inverts affine maps', () => {
