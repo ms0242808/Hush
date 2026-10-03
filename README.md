@@ -31,8 +31,9 @@ no account, no upload — and anyone can host it as a folder of static files.
 ## Using it
 
 1. **Drop a photo** anywhere on the page, paste one, or choose one. The first
-   photo downloads the noise model once (59 MB, said before it starts; on a
-   metered connection Hush asks first). It works offline after.
+   photo downloads the noise model once (59 MB, with its size and progress
+   on screen while the photo already shows; on a metered connection Hush asks
+   first). It works offline after.
 2. The photo opens at **100%** — one photo pixel per screen pixel — where it is
    noisiest. **Drag the divider** to compare; **press and hold** the photo, or
    press `\`, to see the original. Denoised tiles appear nearest the divider
