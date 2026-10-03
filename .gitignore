@@ -24,6 +24,8 @@ __pycache__/
 
 # Test and benchmark output
 test-results/
+# Large photos the real-model checks generate (tools/fixtures/make_large.py) or are pointed at
+apps/web/e2e/real/.photos/
 playwright-report/
 blob-report/
 coverage/

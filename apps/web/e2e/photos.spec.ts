@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { expect, fixture, readComparison, test } from './fixtures';
+import { choosePhoto, expect, fixture, readPhoto, test, waitForPreview } from './fixtures';
 import { extract, profileName, readExif } from './metadata';
 
 /**
@@ -9,17 +9,15 @@ import { extract, profileName, readExif } from './metadata';
  * show upright, and export in their delivery format with their metadata.
  */
 
-async function choosePhoto(page: Page, name: string) {
-	const chooser = page.waitForEvent('filechooser');
-	await page.getByRole('button', { name: 'Choose photo' }).click();
-	await (await chooser).setFiles(fixture(name));
-}
-
-/** The red square in the corner of the scene, in the before (original) and after (inverted) canvases. */
+/** The red square in the corner of the scene, as the original and as the (inverted) result. */
 async function expectUprightCorner(page: Page) {
-	const { width, height, before, after } = await readComparison(page);
-	expect([width, height], 'drawn upright: portrait').toEqual([180, 260]);
-	const at = (pixels: number[], x: number, y: number) => pixels.slice((y * width + x) * 4, (y * width + x) * 4 + 3);
+	await waitForPreview(page);
+	const before = await readPhoto(page, 'original');
+	const after = await readPhoto(page, 'result');
+	expect([before.width, before.height], 'drawn upright: portrait').toEqual([180, 260]);
+	const width = before.width;
+	const at = (photo: { data: number[] }, x: number, y: number) =>
+		photo.data.slice((y * width + x) * 4, (y * width + x) * 4 + 3);
 	const [r, g, b] = at(before, 20, 20);
 	expect(r).toBeGreaterThan(150);
 	expect(g).toBeLessThan(110);
@@ -42,7 +40,8 @@ test.describe('photos from cameras and phones', () => {
 		await page.goto('/');
 		await choosePhoto(page, 'meta-camera.jpg');
 		await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
-		await expect(page.getByText('260 × 180')).toBeVisible();
+		// Stored 260 × 180, shown upright: a portrait photo reads as portrait.
+		await expect(page.getByTestId('photo-size')).toHaveText(/^180 × 260 · /);
 		await expectUprightCorner(page);
 
 		const { name, bytes } = await exportFile(page);
@@ -57,7 +56,7 @@ test.describe('photos from cameras and phones', () => {
 		await page.goto('/');
 		await choosePhoto(page, 'meta-phone.heic');
 		await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
-		await expect(page.getByText('180 × 260')).toBeVisible();
+		await expect(page.getByTestId('photo-size')).toHaveText(/^180 × 260 · /);
 		await expectUprightCorner(page);
 
 		const { name, bytes } = await exportFile(page);

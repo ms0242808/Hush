@@ -3,12 +3,17 @@
 		"name": "Hush",
 		"tagline": "Remove noise from photos, privately"
 	},
+	"common": {
+		"cancel": "Cancel",
+		"close": "Close"
+	},
 	"drop": {
 		"title": "Drop a photo here to remove noise",
 		"titleActive": "Release to remove noise",
 		"choose": "Choose photo",
 		"hint": "or paste one · JPEG, PNG, WebP, HEIC or AVIF",
-		"desktopOnly": "Works best on a computer. Large photos may be slow here."
+		"desktopOnly": "Works best on a computer. Large photos may be slow here.",
+		"replace": "Release to open this photo"
 	},
 	"privacy": {
 		"line": "Your photos stay on this device. Nothing is uploaded.",
@@ -44,26 +49,179 @@
 	},
 	"process": {
 		"opening": "Opening {{name}}",
-		"removing": "Removing noise",
 		"band": "Band {{done}} of {{total}}",
 		"cancel": "Cancel",
 		"cancelled": "Stopped. Nothing was saved."
+	},
+	"photo": {
+		"size": "{{width}} × {{height}} · {{mp}} MP",
+		"deep": "This photo has {{bits}} bits per channel; Hush works in 8 for now.",
+		"profile": "Shown as sRGB here; saved with its own {{profile}} profile."
+	},
+	"panel": {
+		"label": "Adjustments and export"
+	},
+	"controls": {
+		"strength": "Strength",
+		"luma": "Luminance noise",
+		"colour": "Colour noise",
+		"detail": "Detail",
+		"resetHint": "Double-click to reset"
+	},
+	"presets": {
+		"label": "Preset",
+		"default": "Default",
+		"edited": "Edited",
+		"saveAs": "Save as preset…",
+		"update": "Update “{{name}}”",
+		"updated": "Updated “{{name}}”.",
+		"rename": "Rename…",
+		"delete": "Delete…",
+		"import": "Import presets…",
+		"export": "Export as file",
+		"exported": "Exported {{file}} to Downloads.",
+		"imported_one": "Imported {{count}} preset.",
+		"imported_other": "Imported {{count}} presets.",
+		"newer": "{{file}} was made by a newer version of Hush. Update Hush to use it.",
+		"unknownOp": "{{file}} uses “{{op}}”, which this version of Hush doesn't have.",
+		"notAPreset": "{{file}} isn't a Hush preset.",
+		"saveTitle": "Save as preset",
+		"renameTitle": "Rename preset",
+		"saveAction": "Save",
+		"renameAction": "Rename",
+		"saved": "Saved “{{name}}”.",
+		"deleteTitle": "Delete “{{name}}”?",
+		"deleteBody": "The preset is removed from this browser. Photos you've already exported keep their look.",
+		"deleteAction": "Delete",
+		"nameLabel": "Name",
+		"namePlaceholder": "Wedding reception",
+		"replaces": "This replaces the settings saved as “{{name}}”."
+	},
+	"export": {
+		"estimate": "(about {{time}})",
+		"preparing": "Preparing to export",
+		"removing": "Removing noise at full size",
+		"encoding": "Writing the file",
+		"saving": "Saving",
+		"left": "About {{time}} left"
+	},
+	"save": {
+		"savingTo": "Saving to: {{place}}",
+		"downloads": "Downloads",
+		"shareSheet": "Share sheet",
+		"toDownloads": "Downloads",
+		"toFolder": "Folder: {{folder}}",
+		"toShare": "Share sheet (Save to Photos)",
+		"chooseFolder": "Choose a folder…",
+		"chooseAnother": "Choose another folder…",
+		"savedToFolder": "Saved {{file}} to {{folder}}",
+		"shared": "Shared {{file}}",
+		"notShared": "{{file}} wasn't shared. Share it again, or download it.",
+		"downloadInstead": "Download instead",
+		"permission": "Hush needs your permission to save in {{folder}}. Choose the folder again, or save to Downloads.",
+		"problem": {
+			"permission": "{{file}} couldn't be saved to {{folder}}: Hush no longer has permission to write there. Choose the folder again, or download it.",
+			"not-found": "{{file}} couldn't be saved: the folder {{folder}} was moved or deleted. Choose another folder, or download it.",
+			"no-space": "{{file}} couldn't be saved: the disk is full. Free some space and try again, or save it somewhere else.",
+			"blocked": "{{file}} couldn't be saved to {{folder}}: the system blocked the write. On Windows, Controlled folder access does this. Allow your browser there, choose another folder, or download it.",
+			"cancelled": "{{file}} wasn't saved.",
+			"unsupported": "This browser can't save {{file}} this way. Download it instead.",
+			"unknown": "{{file}} couldn't be saved. Try again, or download it."
+		}
+	},
+	"advanced": {
+		"title": "Advanced",
+		"format": "Format",
+		"formatAuto": "Same as photo",
+		"quality": "Quality",
+		"suffix": "Added to the file name",
+		"savesAs": "Saves as {{file}}",
+		"removeLocation": "Remove location",
+		"hasLocation": "This photo has GPS coordinates.",
+		"noLocation": "This photo has no GPS coordinates.",
+		"processing": "Processing",
+		"processingAuto": "Automatic",
+		"runningOn": "Running on the {{backend}}."
+	},
+	"viewer": {
+		"region": "Photo",
+		"role": "photo viewer",
+		"label": "{{name}}. Drag or use the arrow keys to move around; Z switches between fit and 100%.",
+		"fit": "Fit",
+		"zoom": "Zoom",
+		"showOriginal": "Show the original",
+		"showComparison": "Show the comparison",
+		"original": "Original",
+		"dividerValue": "Before {{before}}% · after {{after}}%",
+		"fitHint": "Click the photo to see it at 100%",
+		"previewing": "Removing noise",
+		"previewProgress": "Removing noise · {{done}} of {{total}}",
+		"cpuPreview": "On the processor, the preview covers the area by the divider"
 	},
 	"result": {
 		"before": "Before",
 		"after": "After",
 		"divider": "Before and after",
-		"actualPixels": "100%: one photo pixel per screen pixel. Drag to compare.",
+		"actualPixels": "100%: one photo pixel per screen pixel",
 		"export": "Export",
-		"exporting": "Exporting",
-		"savingTo": "Saving to: Downloads",
 		"saved": "Saved {{file}} to Downloads",
-		"another": "Open another photo",
-		"time": "{{seconds}} s on {{backend}}"
+		"another": "Open another photo"
 	},
 	"backend": {
 		"webgpu": "graphics chip",
-		"wasm": "processor"
+		"wasm": "processor",
+		"webgpuShort": "Graphics chip",
+		"wasmShort": "Processor"
+	},
+	"duration": {
+		"few": "a few seconds",
+		"seconds": "{{count}} s",
+		"minutes": "{{count}} min",
+		"hours": "{{count}} h",
+		"hoursMinutes": "{{hours}} h {{minutes}} min"
+	},
+	"about": {
+		"title": "About Hush",
+		"name": "Hush (靜)",
+		"what": "Removes noise from photos in your browser, on your own graphics chip or processor. Your photos never leave this device.",
+		"model": "Noise model",
+		"modelName": "Model",
+		"code": "Code",
+		"weights": "Weights",
+		"data": "Training data",
+		"modelLoading": "Reading the model list…",
+		"licence": "Licence",
+		"licenceText": "Hush is open source under the Apache License 2.0.",
+		"notices": "Third-party notices",
+		"bugs": "Report a problem",
+		"diagnosticsText": "Copy diagnostics: browser, graphics chip, timings and error codes — never file names, metadata or pixels. Paste it into a GitHub issue.",
+		"copy": "Copy diagnostics",
+		"copied": "Copied",
+		"copyManually": "Diagnostics to copy"
+	},
+	"shortcuts": {
+		"title": "Keyboard shortcuts",
+		"original": "Show the original, or the comparison",
+		"hold": "Show the original while held",
+		"holdKey": "Press and hold the photo",
+		"zoom": "Fit or 100%",
+		"pan": "Move around the photo",
+		"spaceKey": "Space",
+		"dragKey": "drag",
+		"arrows": "Move around (photo selected)",
+		"open": "Open a photo",
+		"export": "Export",
+		"reset": "Reset the sliders",
+		"list": "This list"
+	},
+	"theme": {
+		"light": "Use the light grey interface",
+		"dark": "Use the dark interface"
+	},
+	"unsupported": {
+		"title": "This browser can't run Hush",
+		"insecure": "Hush needs a secure (https) connection to check its noise model and to run at full speed. Open it from an https address, or from localhost.",
+		"oldBrowser": "Hush needs a current browser with WebAssembly and workers. Open it in the latest Chrome, Edge, Safari or Firefox."
 	},
 	"error": {
 		"unsupported": "{{name}} isn't a format Hush can open yet. Use a JPEG, PNG, WebP, HEIC or AVIF photo.",
@@ -73,7 +231,7 @@
 		"decode": "{{name}} couldn't be opened. The file may be damaged. Export it again from your photo app and try once more.",
 		"tooLarge": "{{name}} is {{mp}} megapixels, more than this computer can process safely ({{limit}} MP). Resize it and try again.",
 		"model": "The noise model didn't download. Check your connection, then try again.",
-		"gpu": "The graphics chip stopped responding. Try again. If it keeps happening, use another browser.",
+		"gpu": "The graphics chip stopped responding. Try again. If it keeps happening, choose Processor under Advanced, or use another browser.",
 		"memory": "This photo needs more graphics memory than this computer has free. Close other tabs and apps, then try again.",
 		"output": "Noise removal produced an unusable result, so nothing was saved. Try again, or open Hush in another browser.",
 		"encode": "{{name}} couldn't be saved: it needs more memory than this browser gives the encoder. Close other tabs and try again, or save it as PNG.",

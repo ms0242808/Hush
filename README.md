@@ -7,16 +7,19 @@ An open-source photo denoiser that runs **entirely in your browser, on your own
 graphics chip**. Open a link, drop a photo, get a clean photo back. No install,
 no account, no upload — and anyone can host it as a folder of static files.
 
-> **Status: Phase 1 — the pipeline, headless.** Photos go from file to file in a
-> worker: decode (JPEG, PNG, WebP, HEIC, AVIF) → tile → NAFNet on WebGPU or the
-> processor → row-band accumulate → adjust → encode → metadata, driven by an
-> edit recipe, recovering from GPU memory and device failures. The editor
-> around it is Phase 2. Read **[the Phase 1 results](docs/phase-1-results.md)**
-> and **[the Phase 0 results](docs/phase-0-results.md)** (speed is still an
-> open decision there).
+> **Status: Phase 2 — the single-photo editor.** Drop a photo and it opens at
+> true 100% on its noisiest region, with a before/after divider, four live
+> sliders, presets, and export by download, to a folder or through the share
+> sheet — in English and Traditional Chinese. A 45 MP JPEG shows its first
+> denoised area 1.7 s after it's dropped (model cached, M1 Pro) and exports
+> with its EXIF intact. Read **[the Phase 2 results](docs/phase-2-results.md)**,
+> **[Phase 1](docs/phase-1-results.md)** (the pipeline) and
+> **[Phase 0](docs/phase-0-results.md)** (speed is still an open decision there).
+> Batches are Phase 3.
 >
-> Preview: **<https://hush.ms0242808.workers.dev>** · benchmark this computer,
-> or run a photo through the pipeline and compare its metadata:
+> Preview (deployed by hand, so it can lag behind `main`):
+> **<https://hush.ms0242808.workers.dev>** · benchmark this computer, or run a
+> photo through the pipeline and compare its metadata:
 > **<https://hush.ms0242808.workers.dev/bench/>**
 
 ## Your photos stay on this device
@@ -24,6 +27,33 @@ no account, no upload — and anyone can host it as a folder of static files.
 1. Hush removes noise on your computer, inside the browser tab, with your own graphics chip or processor.
 2. The page may only connect to the site it came from (`Content-Security-Policy: connect-src 'self'`), which serves static files and accepts nothing. Your browser enforces that, and its network panel shows every request.
 3. The code is open source. A lint rule forbids request bodies of any kind, and the end-to-end tests fail on any request to another origin or any CSP violation.
+
+## Using it
+
+1. **Drop a photo** anywhere on the page, paste one, or choose one. The first
+   photo downloads the noise model once (59 MB, with its size and progress
+   on screen while the photo already shows; on a metered connection Hush asks
+   first). It works offline after.
+2. The photo opens at **100%** — one photo pixel per screen pixel — where it is
+   noisiest. **Drag the divider** to compare; **press and hold** the photo, or
+   press `\`, to see the original. Denoised tiles appear nearest the divider
+   first.
+3. **Strength**, **Luminance noise**, **Colour noise** and **Detail** change
+   the result live. Save the settings as a **preset**; presets export and
+   import as `.hush-preset.json` files.
+4. **Export** at full size. It goes to Downloads, to a folder you choose
+   (Chrome and Edge; never over an existing file), or to the share sheet on a
+   phone, and Hush says exactly where it went. Format, quality, the file-name
+   suffix, removing the location, and graphics chip or processor are under
+   **Advanced**.
+
+| Key                  | Does                                      |
+| -------------------- | ----------------------------------------- |
+| `\`                  | The original, or the comparison           |
+| `Z`                  | Fit or 100%                               |
+| Space + drag, arrows | Move around the photo                     |
+| ⌘/Ctrl + O, E, Z     | Open a photo · Export · Reset the sliders |
+| `?`                  | All of these                              |
 
 ## Photos in, photos out
 
@@ -43,16 +73,16 @@ a photo had more.
 
 ## What's here
 
-| Path                       | What it is                                                                                                                                                                                                                                                                                      |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`                 | The web app: React 18, TypeScript, Tailwind 4, Vite 8, and the browser side of the pipeline (WASM codecs, ONNX Runtime, Cache API) in a worker. The root page is the tool; `/bench/` measures this machine and runs the pipeline check.                                                         |
-| `packages/core`            | The platform-free pipeline: format detection, metadata reading and writing, tiling with out-of-memory backoff and device-loss recovery, row-band accumulation, the adjust stage, recipes, manifests and model loading, behind `PlatformAdapters`. No DOM, no Node; its tests run in plain Node. |
-| `packages/ops`             | Image operations built on core. This phase: denoise, with its four sliders.                                                                                                                                                                                                                     |
-| `tools/models`             | Export, verify, quantize and publish the NAFNet ONNX models, and make the golden images ([README](tools/models/README.md)).                                                                                                                                                                     |
-| `tools/fixtures`           | The test photos, written by encoders independent of Hush (Pillow, pillow-heif) with camera-style metadata.                                                                                                                                                                                      |
-| `tools/eslint-plugin-hush` | The `no-upload` lint rule.                                                                                                                                                                                                                                                                      |
-| `deploy/cloudflare`        | Assets-only Cloudflare deployment (no Worker script). Headers live in `apps/web/public/_headers`.                                                                                                                                                                                               |
-| `docs`                     | The [app spec](docs/app_spec.md), [implementation phases](docs/implementation.md) and [Phase 0 results](docs/phase-0-results.md).                                                                                                                                                               |
+| Path                       | What it is                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web`                 | The web app: React 18, TypeScript, Tailwind 4, Vite 8. The root page is the tool: the drop zone, then the editor (`src/editor/`: a WebGL2 viewer with the adjust stage as a shader, the panel, presets, saving), loaded lazily. Workers do the rest: decoding, the preview, export. `/bench/` measures this machine and runs the pipeline check.                                                                                   |
+| `packages/core`            | The platform-free pipeline: format detection, metadata reading and writing, tiling with out-of-memory backoff and device-loss recovery, row-band accumulation, the adjust stage, recipes, manifests and model loading, behind `PlatformAdapters`; and for the editor, the noisiest-region search, the progressive preview grid and scheduler, view geometry and the export estimate. No DOM, no Node; its tests run in plain Node. |
+| `packages/ops`             | Image operations built on core. This phase: denoise, with its four sliders.                                                                                                                                                                                                                                                                                                                                                        |
+| `tools/models`             | Export, verify, quantize and publish the NAFNet ONNX models, and make the golden images ([README](tools/models/README.md)).                                                                                                                                                                                                                                                                                                        |
+| `tools/fixtures`           | The test photos, written by encoders independent of Hush (Pillow, pillow-heif) with camera-style metadata; `make_large.py` writes the 45 MP photo the real-model checks use.                                                                                                                                                                                                                                                       |
+| `tools/eslint-plugin-hush` | The `no-upload` lint rule.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `deploy/cloudflare`        | Assets-only Cloudflare deployment (no Worker script). Headers live in `apps/web/public/_headers`.                                                                                                                                                                                                                                                                                                                                  |
+| `docs`                     | The [app spec](docs/app_spec.md), [implementation phases](docs/implementation.md), and each phase's results: [0](docs/phase-0-results.md), [1](docs/phase-1-results.md), [2](docs/phase-2-results.md).                                                                                                                                                                                                                             |
 
 ## Running it
 
@@ -86,16 +116,16 @@ Playwright and writes the results to `docs/phase-0/results/`.
 
 ## Checks
 
-| Command                            | What it checks                                                                                                                                                                                                                                                         |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm typecheck`                   | TypeScript strict everywhere; `packages/core` and `packages/ops` compile without DOM or Node types.                                                                                                                                                                    |
-| `pnpm lint`                        | ESLint, including the platform-free rule for core and ops and the `no-upload` rule.                                                                                                                                                                                    |
-| `pnpm test`                        | Vitest in plain Node: metadata round-trips checked with exifr, tiling, seams, band memory up to 102 MP, the adjust stage, recipes, resilience, manifests, §2.10 rules, model tooling.                                                                                  |
-| `pnpm e2e`                         | Playwright against a production build with the real headers and the tiny CI test models: every format through the pipeline, metadata read back with exifr, orientation, refusals, GPU-failure recovery, a 102 MP photo. Fails on any foreign request or CSP violation. |
-| `pnpm --filter @hush/web e2e:real` | Locally, with the real model and a GPU (installed Chrome): golden images, seams, speed, a real device loss, 102 MP through NAFNet.                                                                                                                                     |
-| `pnpm check:dist`                  | No file over 24 MiB; first-load JavaScript within 150 KB gzipped.                                                                                                                                                                                                      |
-| `pnpm format:check`                | Prettier.                                                                                                                                                                                                                                                              |
-| `pnpm notices:check`               | `THIRD_PARTY_NOTICES.md` matches the dependency tree.                                                                                                                                                                                                                  |
+| Command                            | What it checks                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `pnpm typecheck`                   | TypeScript strict everywhere; `packages/core` and `packages/ops` compile without DOM or Node types.                                                                                                                                                                                                                                                                                                                |
+| `pnpm lint`                        | ESLint, including the platform-free rule for core and ops and the `no-upload` rule.                                                                                                                                                                                                                                                                                                                                |
+| `pnpm test`                        | Vitest in plain Node: metadata round-trips checked with exifr, tiling, seams, band memory up to 102 MP, the adjust stage, recipes, resilience, manifests, §2.10 rules, model tooling; the preview grid and scheduler, the noisiest region, presets, saving, diagnostics, every translation.                                                                                                                        |
+| `pnpm e2e`                         | Playwright against a production build with the real headers and the tiny CI test models: the editor end to end (the viewer's shader against core's adjust stage, presets, every save method, the model download, keyboard, zh-Hant), every format through the pipeline, metadata read back with exifr, orientation, refusals, GPU-failure recovery, a 102 MP photo. Fails on any foreign request or CSP violation. |
+| `pnpm --filter @hush/web e2e:real` | Locally, with the real model and a GPU (installed Chrome): golden images, seams, speed, a real device loss, 102 MP through NAFNet, and Phase 2's acceptance — a 45 MP JPEG's preview timing and export EXIF. `HUSH_PHOTO=/path/to/photo.jpg` runs the editor checks on a photo of yours.                                                                                                                           |
+| `pnpm check:dist`                  | No file over 24 MiB; first-load JavaScript within 150 KB gzipped.                                                                                                                                                                                                                                                                                                                                                  |
+| `pnpm format:check`                | Prettier.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `pnpm notices:check`               | `THIRD_PARTY_NOTICES.md` matches the dependency tree.                                                                                                                                                                                                                                                                                                                                                              |
 
 CI runs all of them on every pull request.
 

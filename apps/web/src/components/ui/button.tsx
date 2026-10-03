@@ -22,6 +22,7 @@ const buttonVariants = cva(
 				primary: 'bg-accent text-accent-fg hover:bg-accent-hover',
 				secondary: 'border border-line-strong bg-raised text-fg hover:border-fg-subtle/60',
 				ghost: 'text-fg-muted hover:bg-raised hover:text-fg',
+				danger: 'bg-danger text-danger-fg hover:opacity-90',
 				link: 'h-auto px-0 text-accent underline-offset-4 hover:underline active:scale-100',
 			},
 			size: {

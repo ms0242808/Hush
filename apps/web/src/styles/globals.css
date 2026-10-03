@@ -26,7 +26,10 @@
 	--accent-fg: oklch(0.19 0.035 250);
 	--warning: oklch(0.84 0.11 85);
 	--danger: oklch(0.74 0.14 25);
+	--danger-fg: oklch(0.2 0.03 25);
 	--success: oklch(0.8 0.12 155);
+	/* Around the photo: neutral grey, as hex because the viewer's shader reads it. */
+	--viewer-bg: #1c1c1c;
 }
 
 :root[data-theme='light'] {
@@ -45,7 +48,9 @@
 	--accent-fg: oklch(0.985 0 0);
 	--warning: oklch(0.52 0.12 70);
 	--danger: oklch(0.52 0.17 25);
+	--danger-fg: oklch(0.985 0 0);
 	--success: oklch(0.5 0.12 155);
+	--viewer-bg: #c4c4c4;
 }
 
 @theme inline {
@@ -66,7 +71,9 @@
 	--color-accent-fg: var(--accent-fg);
 	--color-warning: var(--warning);
 	--color-danger: var(--danger);
+	--color-danger-fg: var(--danger-fg);
 	--color-success: var(--success);
+	--color-viewer: var(--viewer-bg);
 	/* Strong custom curves: the built-in easings are too weak to feel intentional. */
 	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
 	--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -109,6 +116,53 @@
 	}
 }
 
+@layer components {
+	/* Labels over the photo: neutral, small, never the accent colour (§5.1). */
+	.viewer-chip {
+		border-radius: 6px;
+		background: rgb(0 0 0 / 0.55);
+		padding: 4px 8px;
+		font-size: 11px;
+		font-weight: 500;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: rgb(255 255 255 / 0.9);
+	}
+	:lang(zh-Hant) .viewer-chip {
+		letter-spacing: 0.02em;
+	}
+	.about-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--accent);
+		text-underline-offset: 4px;
+	}
+	.about-link:hover {
+		text-decoration: underline;
+	}
+	/* Controls floating over the photo: neutral glass, so nothing near the photo carries colour. */
+	.viewer-glass {
+		background: rgb(20 20 20 / 0.62);
+		box-shadow:
+			0 0 0 1px rgb(255 255 255 / 0.08),
+			0 4px 16px rgb(0 0 0 / 0.25);
+		-webkit-backdrop-filter: blur(12px);
+		backdrop-filter: blur(12px);
+	}
+	/* Constant motion is linear; a quick turn reads as quick work. */
+	.spinner {
+		animation: spin 700ms linear infinite;
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.spinner {
+			animation-duration: 2.4s;
+		}
+	}
+}
+
 @layer utilities {
 	.tabular {
 		font-variant-numeric: tabular-nums;
@@ -132,6 +186,50 @@
 				transform: none;
 			}
 		}
+	}
+}
+
+/*
+ * Menus grow out of their trigger and close at once: an exit animation would
+ * keep the old menu mounted, and reopening it during those milliseconds lets
+ * its focus return close the new one. Tooltips animate only when they open
+ * after the delay, never when moving between neighbours.
+ */
+.menu-surface {
+	transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+.menu-surface[data-state='open'] {
+	animation: pop-in 160ms var(--ease-out);
+}
+.tooltip-surface {
+	transform-origin: var(--radix-tooltip-content-transform-origin);
+}
+.tooltip-surface[data-state='delayed-open'] {
+	animation: pop-in 125ms var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+	.menu-surface[data-state='open'],
+	.tooltip-surface[data-state='delayed-open'] {
+		animation: fade-in 150ms ease;
+	}
+}
+
+@keyframes pop-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
 	}
 }
 

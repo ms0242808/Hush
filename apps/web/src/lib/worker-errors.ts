@@ -13,6 +13,13 @@ const original = Comlink.transferHandlers.get('throw')!;
 
 type Fields = Record<string, string | number | boolean | null>;
 
+/** An error as plain data: what crosses a worker boundary outside a thrown RPC (callbacks, events). */
+export interface PlainError {
+	name: string;
+	message: string;
+	fields: Fields;
+}
+
 function fieldsOf(error: Error): Fields {
 	const fields: Fields = {};
 	for (const [key, value] of Object.entries(error)) {
@@ -21,6 +28,18 @@ function fieldsOf(error: Error): Fields {
 		}
 	}
 	return fields;
+}
+
+export function plainError(error: unknown): PlainError {
+	if (error instanceof Error) return { name: error.name, message: error.message, fields: fieldsOf(error) };
+	return { name: 'Error', message: String(error), fields: {} };
+}
+
+/** Back to an Error with its name and fields, as `describeError` expects. */
+export function fromPlainError(plain: PlainError): Error {
+	const error = new Error(plain.message);
+	error.name = plain.name;
+	return Object.assign(error, plain.fields);
 }
 
 Comlink.transferHandlers.set('throw', {

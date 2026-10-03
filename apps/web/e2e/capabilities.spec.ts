@@ -140,7 +140,10 @@ test.describe('no usable GPU', () => {
 		const chooser = page.waitForEvent('filechooser');
 		await page.getByRole('button', { name: 'Choose photo' }).click();
 		await (await chooser).setFiles(fixture('noisy-gradient.png'));
-		await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
-		await expect(page.getByText(/s on processor/)).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
+		await page.getByRole('button', { name: 'Advanced' }).click();
+		await expect(page.getByText('Running on the processor.')).toBeVisible();
+		// No WebGL here either (the mock replaces it): the viewer draws with Canvas 2D.
+		await expect.poll(() => page.evaluate(() => window.__hushViewer?.state().renderer)).toBe('canvas2d');
 	});
 });

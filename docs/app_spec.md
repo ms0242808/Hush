@@ -689,7 +689,7 @@ Each phase ends deployable. Don't start one until the previous criteria pass. Re
 
 - [x] Phase 0 Foundations and NAFNet spike ⚠️ go/no-go — [results](phase-0-results.md): quality go, speed rethink
 - [x] Phase 1 — The pipeline, headless — [results](phase-1-results.md): golden images, no seams, metadata round-trip, 102 MP within one band
-- [ ] Phase 2 — Single-photo editor
+- [x] Phase 2 — Single-photo editor — [results](phase-2-results.md): 45 MP before/after at 100% in 1.7 s with the model cached (borderline band), EXIF kept on export
 - [ ] Phase 3 — Batch
 - [ ] Phase 4 — PWA and offline
 - [ ] Phase 5 — Open-source release
