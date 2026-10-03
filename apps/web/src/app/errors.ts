@@ -63,3 +63,20 @@ const ABOUT_THE_PHOTO = ['UnsupportedPhotoError', 'UnsupportedFormatError', 'Dec
 export function isRetryable(error: unknown): boolean {
 	return !(error instanceof Error && ABOUT_THE_PHOTO.includes(error.name));
 }
+
+/** Failures the processor path would share: the model, the photo, or the user stopping. */
+const NOT_THE_GPU = [
+	'ModelError',
+	'ModelIntegrityError',
+	'ManifestError',
+	'UnsupportedPhotoError',
+	'UnsupportedFormatError',
+	'DecodeError',
+	'PhotoTooLargeError',
+	'CancelledError',
+];
+
+/** A WebGPU failure worth retrying on the processor (§2.10): anything that isn't about the model or the photo. */
+export function usableElsewhere(error: unknown): boolean {
+	return !(error instanceof Error && NOT_THE_GPU.includes(error.name));
+}

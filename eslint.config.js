@@ -128,6 +128,11 @@ export default defineConfig(
 		files: ['apps/web/src/worker/**/*.ts'],
 		languageOptions: { globals: { ...globals.worker } },
 	},
+	// Classic scripts served as they are (the pre-paint theme).
+	{
+		files: ['apps/web/public/*.js'],
+		languageOptions: { sourceType: 'script', globals: { ...globals.browser } },
+	},
 
 	// Node-side code: build plugins, scripts, tools, tests.
 	{
