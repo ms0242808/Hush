@@ -69,25 +69,25 @@ Made during the phase, each with its reason. None changes the spec's intent.
 
 From `pnpm --filter @hush/web e2e:real` (`apps/web/e2e/real/editor.spec.ts`), WebGPU, fp16, a 1280 × 800 window at 1×.
 
-| Check                                                | Result                                                                                           |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| 45 MP JPEG, model cached: photo on screen            | 1.26 s (decode 0.81 s in the decode worker)                                                      |
-| … first denoised tile at the divider                 | **1.72–1.74 s** (reading the model 0.09 s, GPU session 0.95–1.04 s, the tile itself 0.45–0.49 s) |
-| … about 1 MP around the divider                      | 2.92–3.04 s                                                                                      |
-| … the whole view (9 tiles)                           | 4.9–5.2 s                                                                                        |
-| … noise at 100%, mean \|Laplacian\| of luminance     | 46.8 (original) → 6.5 (result)                                                                   |
-| … export                                             | 91.0 s, estimated 95.8 s beforehand · 9.7 MB · 20 EXIF tags, only `Software` changed             |
-| A 45 MP photo, 1440 × 900 at 2×                      | first tile 1.64 s, ~1 MP 2.85 s, whole view (25 tiles) 11.3 s; export 89.6 s                     |
-| A second photo in the same session (2.7 MP)          | first tile 0.61 s                                                                                |
-| The photographer's photo (2000 × 1333, `HUSH_PHOTO`) | noise 8.6 → 2.4; export 5.5 s                                                                    |
-| Processor (WASM, 7 threads), 2.7 MP                  | the tile at the divider in 1.7 s; "Export (about 25 s)"                                          |
-| Cancel an export partway                             | "Stopped. Nothing was saved."; the photo is decoded again and panning carries on                 |
+| Check                                                | Result                                                                                                                            |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 45 MP JPEG, model cached: photo on screen            | 1.26 s (decode 0.81 s in the decode worker)                                                                                       |
+| … first denoised tile at the divider                 | **1.72–1.74 s** (reading the model 0.09 s, GPU session 0.95–1.04 s, the tile itself 0.45–0.49 s)                                  |
+| … about 1 MP around the divider                      | 2.92–3.04 s                                                                                                                       |
+| … the whole view (9 tiles)                           | 4.9–5.2 s                                                                                                                         |
+| … noise at 100%, mean \|Laplacian\| of luminance     | 46.8 (original) → 6.5 (result)                                                                                                    |
+| … export                                             | 91.0–98.5 s, estimated 95.8–102.6 s beforehand (each run measures its own speed) · 9.7 MB · 20 EXIF tags, only `Software` changed |
+| A 45 MP photo, 1440 × 900 at 2×                      | first tile 1.64 s, ~1 MP 2.85 s, whole view (25 tiles) 11.3 s; export 89.6 s                                                      |
+| A second photo in the same session (2.7 MP)          | first tile 0.61 s                                                                                                                 |
+| The photographer's photo (2000 × 1333, `HUSH_PHOTO`) | noise 8.6 → 2.4; export 5.5 s                                                                                                     |
+| Processor (WASM, 7 threads), 2.7 MP                  | the tile at the divider in 1.7 s; "Export (about 25 s)"                                                                           |
+| Cancel an export partway                             | "Stopped. Nothing was saved."; the photo is decoded again and panning carries on                                                  |
 
 **Where the first 1.7 s goes**, and what moved it. Decoding on the pipeline worker used to hold its thread for ~0.9 s while the model waited: first tile 2.4 s. The decode worker took that off the critical path (reading the model from the Cache API: 942 → 94 ms). What remains is ONNX Runtime building its WebGPU session (~0.95 s), once per page — which is why a second photo shows its first tile in 0.6 s.
 
 **Against §4.6.** The spec's preview row (≤ 1.5 s go, ≤ 3 s borderline) is the model's time for a ~1 MP crop with the session ready. Phase 0 measured 1.8 s for one 1120² tile (borderline). The editor's first 512² tile takes 0.45 s and four of them (~1 MP) about 1.6 s: the same borderline band, the same model speed — [Phase 0's speed question](phase-0-results.md#what-to-decide) is still open, and the preview design means less of it is waited for.
 
-**Export speed** is unchanged from Phase 1 at the same tile plan (45 MP in ~86 s of denoising, 4 s of encoding).
+**Phase 1's real-model checks, re-run on this branch, are unchanged**: golden images on WebGPU and the processor, seams 53.2 dB (at most 4 levels), 45 MP in 86.7 s (Phase 1: 86.8 s), a real device loss recovered at 45.2 dB, out-of-memory backoff to 288-px tiles at 43.5 dB, and 102 MP through NAFNet in 179.9 s (Phase 1: 180.6 s) with the same 118 MiB peak float memory.
 
 ## In CI
 
