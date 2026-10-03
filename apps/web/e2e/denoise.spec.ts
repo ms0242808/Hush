@@ -1,26 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { expect, fixture, readComparison, test } from './fixtures';
+import { choosePhoto, editorState, expect, fixture, readPhoto, test, waitForPreview } from './fixtures';
 
-// The whole spike, end to end: decode → tile → infer in a worker → band
-// accumulate → blend → preview → export. CI runs the test model, which
-// inverts colours exactly, so any off-by-one anywhere shows up as a mismatch.
-
-async function choosePhoto(page: Page, name: string) {
-	const chooser = page.waitForEvent('filechooser');
-	await page.getByRole('button', { name: 'Choose photo' }).click();
-	await (await chooser).setFiles(fixture(name));
-}
+// The whole path, end to end: decode → preview tiles in a worker → feathered
+// composite → the viewer's adjust shader → export at full size. CI runs the
+// test model, which inverts colours exactly, so any off-by-one anywhere shows
+// up as a mismatch.
 
 async function expectExactInversion(page: Page) {
-	await expect(page.getByTestId('compare-frame')).toBeVisible();
-	const { width, height, before, after } = await readComparison(page);
-	expect(width).toBeGreaterThan(0);
-	expect(height).toBeGreaterThan(0);
+	await waitForPreview(page);
+	const original = await readPhoto(page, 'original');
+	const result = await readPhoto(page, 'result');
+	expect(original.width).toBeGreaterThan(0);
+	expect([result.width, result.height]).toEqual([original.width, original.height]);
 	let worst = 0;
-	for (let i = 0; i < before.length; i += 4) {
-		for (let c = 0; c < 3; c++) worst = Math.max(worst, Math.abs(255 - before[i + c]! - after[i + c]!));
+	for (let i = 0; i < original.data.length; i += 4) {
+		for (let c = 0; c < 3; c++) worst = Math.max(worst, Math.abs(255 - original.data[i + c]! - result.data[i + c]!));
 	}
 	expect(worst, 'largest deviation from 255 − input, in levels').toBe(0);
 }
@@ -29,9 +25,8 @@ test.describe('one photo', () => {
 	test('a PNG goes through the whole pipeline and comes back exactly as the model made it', async ({ page }) => {
 		await page.goto('/');
 		await choosePhoto(page, 'noisy-gradient.png');
-		await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
-		await expect(page.getByText('260 × 180')).toBeVisible();
-		await expect(page.getByText(/s on (processor|graphics chip)/)).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
+		await expect(page.getByTestId('photo-size')).toHaveText(/^260 × 180 · /);
 		await expectExactInversion(page);
 	});
 
@@ -39,6 +34,7 @@ test.describe('one photo', () => {
 		await page.goto('/');
 		await choosePhoto(page, 'noisy-gradient.jpg');
 		await expect(page.getByText('Saving to: Downloads')).toBeVisible();
+		await waitForPreview(page);
 		const download = page.waitForEvent('download');
 		await page.getByRole('button', { name: 'Export' }).click();
 		const file = await download;
@@ -64,7 +60,7 @@ test.describe('one photo', () => {
 			transfer.items.add(new File([new Uint8Array(data)], 'dropped.png', { type: 'image/png' }));
 			document.body.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
 		}, bytes);
-		await expect(page.getByText('dropped.png', { exact: true })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'dropped.png' })).toBeVisible();
 		await expectExactInversion(page);
 	});
 
@@ -76,8 +72,35 @@ test.describe('one photo', () => {
 			transfer.items.add(new File([new Uint8Array(data)], 'pasted.png', { type: 'image/png' }));
 			window.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, cancelable: true }));
 		}, bytes);
-		await expect(page.getByText('pasted.png', { exact: true })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'pasted.png' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
+	});
+
+	test('another photo dropped on the editor replaces the one open, keeping the model', async ({ page }) => {
+		const parts: string[] = [];
+		page.on('request', (request) => {
+			if (request.url().includes('/models/parts/')) parts.push(request.url());
+		});
+		await page.goto('/');
+		await choosePhoto(page, 'noisy-gradient.png');
+		await waitForPreview(page);
+		const fetched = parts.length;
+		expect(fetched).toBeGreaterThan(0);
+		const bytes = [...readFileSync(fixture('noisy-gradient.jpg'))];
+		await page.evaluate((data) => {
+			const transfer = new DataTransfer();
+			transfer.items.add(new File([new Uint8Array(data)], 'second.jpg', { type: 'image/jpeg' }));
+			document.body.dispatchEvent(new DragEvent('dragenter', { bubbles: true, dataTransfer: transfer }));
+		}, bytes);
+		await expect(page.getByText('Release to open this photo')).toBeVisible();
+		await page.evaluate((data) => {
+			const transfer = new DataTransfer();
+			transfer.items.add(new File([new Uint8Array(data)], 'second.jpg', { type: 'image/jpeg' }));
+			document.body.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
+		}, bytes);
+		await expect(page.getByRole('heading', { name: 'second.jpg' })).toBeVisible();
+		await waitForPreview(page);
+		expect(parts.length, 'the model is not fetched again').toBe(fetched);
 	});
 
 	test('a file that isn’t a photo gets a clear message, and the way back', async ({ page }) => {
@@ -107,30 +130,31 @@ test.describe('one photo', () => {
 		await expect(page.getByRole('alert')).toContainText(
 			'Noise removal produced an unusable result, so nothing was saved.',
 		);
-		await expect(page.getByRole('button', { name: 'Export' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Export' })).toBeDisabled();
+		expect((await editorState(page))?.error).toBe('ModelOutputError');
 	});
 });
 
-test.describe('result view', () => {
+test.describe('the viewer', () => {
 	test('stays idle once drawn: no redraw loop', async ({ page }) => {
-		await page.addInitScript(() => {
-			const counted = window as unknown as { __draws: number };
-			counted.__draws = 0;
-			const drawImage = CanvasRenderingContext2D.prototype.drawImage;
-			CanvasRenderingContext2D.prototype.drawImage = function (this: CanvasRenderingContext2D, ...args: unknown[]) {
-				counted.__draws++;
-				return (drawImage as (...a: unknown[]) => void).apply(this, args);
-			} as typeof drawImage;
-		});
 		await page.goto('/');
 		await choosePhoto(page, 'noisy-gradient.png');
-		await expect(page.getByTestId('compare-frame')).toBeVisible();
+		await waitForPreview(page);
 		await page.waitForTimeout(500);
-		const draws = () => page.evaluate(() => (window as unknown as { __draws: number }).__draws);
+		const draws = () => page.evaluate(() => window.__hushViewer!.draws);
 		const settled = await draws();
 		await page.waitForTimeout(1500);
-		expect(await draws(), 'canvas redraws while nothing changed').toBe(settled);
-		expect(settled, 'before and after, once each (a resize may add one more pair)').toBeLessThanOrEqual(4);
+		expect(await draws(), 'redraws while nothing changed').toBe(settled);
+	});
+
+	test('draws at 100%: one photo pixel per device pixel, upright, centred', async ({ page }) => {
+		await page.goto('/');
+		await choosePhoto(page, 'noisy-gradient.png');
+		await waitForPreview(page);
+		const state = await page.evaluate(() => window.__hushViewer!.state());
+		expect(state.zoom).toBe(1);
+		expect([state.photo.width, state.photo.height]).toEqual([260, 180]);
+		expect(Math.abs(state.photo.x - (state.viewport.width - 260) / 2)).toBeLessThanOrEqual(1);
 	});
 });
 
@@ -138,7 +162,7 @@ test.describe('keyboard (§5.8)', () => {
 	test('\\ shows the original, the divider moves with arrow keys, ⌘/Ctrl+O opens a photo', async ({ page }) => {
 		await page.goto('/');
 		await choosePhoto(page, 'noisy-gradient.png');
-		await expect(page.getByRole('button', { name: 'Export' })).toBeVisible();
+		await waitForPreview(page);
 
 		const divider = page.getByRole('slider', { name: 'Before and after' });
 		await expect(divider).toHaveAttribute('aria-valuenow', '50');
@@ -150,6 +174,7 @@ test.describe('keyboard (§5.8)', () => {
 
 		await page.keyboard.press('Backslash');
 		await expect(page.getByText('After', { exact: true })).toHaveCount(0);
+		await expect(page.getByText('Original', { exact: true })).toBeVisible();
 		await page.keyboard.press('Backslash');
 		await expect(page.getByText('After', { exact: true })).toBeVisible();
 

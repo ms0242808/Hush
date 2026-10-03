@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test as base, expect, type Page } from '@playwright/test';
+import './harness';
 
 export const fixture = (name: string) => path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', name);
 
@@ -49,17 +50,66 @@ export const test = base.extend<{ watch: Watch }>({
 
 export { expect };
 
-/** Read the 1:1 before/after canvases of the compare view. */
-export async function readComparison(page: Page) {
+/** Choose a photo through the drop zone's button (or, in the editor, ⌘/Ctrl+O). */
+export async function choosePhoto(page: Page, name: string, button = 'Choose photo') {
+	const chooser = page.waitForEvent('filechooser');
+	await page.getByRole('button', { name: button }).click();
+	await (await chooser).setFiles(fixture(name));
+}
+
+interface EditorProbe {
+	model: string;
+	done: number;
+	planned: number;
+	running: boolean;
+	error: string | null;
+	backend: string | null;
+}
+
+/** The editor's state, through its test hook (non-production builds only). */
+export function editorState(page: Page): Promise<EditorProbe | null> {
 	return page.evaluate(() => {
-		const canvases = [...document.querySelectorAll<HTMLCanvasElement>('[data-testid="compare-frame"] canvas')];
-		const read = (canvas: HTMLCanvasElement) =>
-			Array.from(canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data);
+		const state = window.__hushEditor?.getState();
+		if (!state) return null;
 		return {
-			width: canvases[0]!.width,
-			height: canvases[0]!.height,
-			before: read(canvases[0]!),
-			after: read(canvases[1]!),
+			model: state.model.status,
+			done: state.preview.done,
+			planned: state.preview.planned,
+			running: state.preview.running,
+			error: state.preview.error?.name ?? null,
+			backend: state.backend,
 		};
 	});
+}
+
+/** Wait until the model is ready and every preview tile the view needs is drawn. */
+export async function waitForPreview(page: Page, timeout = 30_000) {
+	await expect
+		.poll(
+			async () => {
+				const state = await editorState(page);
+				return (
+					state !== null &&
+					state.model === 'ready' &&
+					state.planned > 0 &&
+					state.done === state.planned &&
+					!state.running
+				);
+			},
+			{ timeout, intervals: [100] },
+		)
+		.toBe(true);
+}
+
+/**
+ * The photo as the viewer draws it at 100%: the original, or entirely the
+ * result (divider at the left edge). Pixels exactly as on screen, RGBA.
+ */
+export async function readPhoto(page: Page, mode: 'original' | 'result') {
+	const photo = await page.evaluate((which) => {
+		const read = window.__hushViewer?.readPhoto(which);
+		return read ? { width: read.width, height: read.height, data: Array.from(read.data) } : null;
+	}, mode);
+	if (!photo) throw new Error('The viewer is not ready');
+	return photo;
 }

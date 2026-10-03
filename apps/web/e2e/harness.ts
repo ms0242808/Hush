@@ -30,9 +30,48 @@ export interface BenchHandle {
 	markdown(): string;
 }
 
+/** What the editor's viewer exposes in non-production builds (src/editor/viewer/Viewer.tsx). */
+export interface ViewerHarness {
+	read(): { width: number; height: number; data: Uint8Array } | null;
+	readPhoto(mode: 'original' | 'result'): {
+		width: number;
+		height: number;
+		data: Uint8Array;
+		rect: { x: number; y: number; width: number; height: number };
+	} | null;
+	state(): {
+		zoom: 'fit' | 1 | 2;
+		viewport: { width: number; height: number };
+		region: { x: number; y: number; width: number; height: number } | null;
+		divider: number;
+		renderer: string;
+		draws: number;
+		photo: { x: number; y: number; width: number; height: number };
+	};
+	draws: number;
+}
+
+/** The editor store's surface the tests read and nudge (src/editor/store.ts). */
+export interface EditorHarness {
+	getState(): {
+		model: { status: string };
+		preview: { done: number; planned: number; running: boolean; error: { name: string } | null };
+		backend: string | null;
+		params: { strength: number; luma: number; colour: number; detail: number };
+		estimateMs: number | null;
+		timings: Record<string, number>;
+		zoom: 'fit' | 1 | 2;
+		showOriginal: boolean;
+		[key: string]: unknown;
+	};
+	setState(patch: Record<string, unknown>): void;
+}
+
 declare global {
 	interface Window {
 		__hushPipeline?: PipelineHarness;
 		__hushBench?: BenchHandle;
+		__hushViewer?: ViewerHarness;
+		__hushEditor?: EditorHarness;
 	}
 }
