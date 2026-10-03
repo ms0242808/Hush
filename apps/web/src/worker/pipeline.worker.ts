@@ -6,7 +6,6 @@
  * as finished files (transferred buffers).
  */
 import {
-	asImage8,
 	blankPhotoInfo,
 	CancelledError,
 	chooseTileSize,
@@ -21,8 +20,6 @@ import {
 	megapixelsPerSecond,
 	minTileSize,
 	msPerPixel,
-	noiseMap,
-	noisiestPoint,
 	PhotoTooLargeError,
 	prepareModel,
 	PreviewGrid,
@@ -62,7 +59,8 @@ import { sniffFormat, type PhotoFormat } from '../lib/formats.ts';
 import { probeGpu } from '../lib/gpu-probe.ts';
 import { browserCodecs } from './adapters/codecs.ts';
 import { browserAdapters } from './adapters/index.ts';
-import { overviewOf, previewColourSpace, profileName } from './editor-images.ts';
+import type { DecodeApi, DecodedPhoto } from './decode.worker.ts';
+import { previewColourSpace, profileName } from './editor-images.ts';
 import type { FaultPlan, OrtLogLevel, OrtSession } from './adapters/inference.ts';
 import { browserAssets, browserStorage, browserZlib, memoryOutput, named } from './adapters/platform.ts';
 import { clampRect, cropImage, psnr, toBitmap, type Rect } from './pixels.ts';
@@ -361,10 +359,9 @@ function startRedecode(): Promise<void> {
 		if (!source) return;
 		// Let the old pixels go before the decoder allocates new ones: a 100 MP photo is held once.
 		source.image = { ...source.image, data: new Uint8Array(0) };
-		const bytes = new Uint8Array(await current.file.arrayBuffer());
-		const decoded = await browserCodecs.decode(bytes, source.info.format);
+		const decoded = await decodeElsewhere(current.file, null);
 		if (editing !== current || !source) return;
-		source.image = asImage8(decoded.image);
+		source.image = decoded.image;
 		current.consumed = false;
 	})().finally(() => {
 		current.redecode = null;
@@ -375,6 +372,27 @@ function startRedecode(): Promise<void> {
 
 async function ensureDecoded(): Promise<void> {
 	if (editing?.consumed) await startRedecode();
+}
+
+/**
+ * Decode in a worker of its own (decode.worker.ts): this thread stays free to
+ * load the model meanwhile, and the decoder's memory is released with it.
+ */
+async function decodeElsewhere(file: File, view: Size | null): Promise<DecodedPhoto> {
+	const worker = new Worker(new URL('./decode.worker.ts', import.meta.url), { type: 'module', name: 'hush-decode' });
+	const decoder = Comlink.wrap<DecodeApi>(worker);
+	const failed = new Promise<never>((_, reject) => {
+		worker.addEventListener('error', (event) => reject(named('DecodeError', event.message || 'The decoder stopped')), {
+			once: true,
+		});
+	});
+	try {
+		return await Promise.race([decoder.decode(file, { maxMegapixels: maxMegapixels(), view }), failed]);
+	} finally {
+		failed.catch(() => {});
+		decoder[Comlink.releaseProxy]();
+		worker.terminate();
+	}
 }
 
 /** Forget the editor's photo and preview: another photo is being opened, or the bench took over. */
@@ -574,18 +592,12 @@ const api = {
 		closeEditing();
 		source = null;
 		result = null;
-		const { bytes, info } = await readFile(file);
-		const decodeStart = now();
-		const decoded = await browserCodecs.decode(bytes, info.format);
-		const image = asImage8(decoded.image);
-		const decodeMs = now() - decodeStart;
+		const decoded = await decodeElsewhere(file, view);
+		const { info, image, editor } = decoded;
 		source = { name: file.name, info, orientation: decoded.orientation, image };
 		const orientation = decoded.orientation === 'applied' ? 1 : info.orientation;
-		// The view is measured upright; the noise search works on stored pixels.
-		const window = orientation >= 5 ? { width: view.height, height: view.width } : view;
-		const noisiest = noisiestPoint(noiseMap(image), window);
-		editing = { file, decodeMs, noisiest, consumed: false, redecode: null };
-		const overview = overviewOf(image);
+		editing = { file, decodeMs: decoded.decodeMs, noisiest: editor!.noisiest, consumed: false, redecode: null };
+		const overview = editor!.overview;
 		const described = describeSource(info);
 		return Comlink.transfer(
 			{
@@ -599,8 +611,8 @@ const api = {
 				warnings: info.warnings,
 				openMs: now() - start,
 				megapixels: (image.width * image.height) / 1e6,
-				decodeMs,
-				noisiest,
+				decodeMs: decoded.decodeMs,
+				noisiest: editor!.noisiest,
 				overview: { width: overview.width, height: overview.height, data: overview.data },
 				previewColour: previewColourSpace(info),
 				profile: profileName(info),
