@@ -8,12 +8,12 @@ The Phase 2 criterion in [`implementation.md`](implementation.md):
 
 > A photographer drops a 45 MP JPEG, sees a clear before/after at 100% within the preview target once the model is cached, and exports a file whose EXIF matches the original.
 
-| Part                                  | Result                                                                                                                                                                                                                                                                                                                                              |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Drops a 45 MP JPEG**                | Drop, paste, **Choose photo** or ⌘/Ctrl+O, anywhere on the window. The photo is on screen **1.26 s** after it is chosen (decode 0.8 s).                                                                                                                                                                                                             |
-| **A clear before/after at 100%**      | **Yes.** It opens at true 100% (one photo pixel per device pixel, any `devicePixelRatio`) on the photo's **noisiest region**, with the divider in the middle of a denoised tile. Measured noise (mean absolute Laplacian of luminance) at 100%: **46.8 → 6.5**.                                                                                     |
-| **Within the preview target, cached** | **Yes, in the borderline band (≤ 3 s).** From choosing the photo: first denoised tile at the divider **1.72 s**, about 1 MP **2.92 s**, the whole 1280 × 800 view **4.9 s**. That includes decoding and building the GPU session; the model's own time for the first tile is **0.45 s**. A second photo in the same session: first tile **0.61 s**. |
-| **Exports a file whose EXIF matches** | **Yes.** All 20 EXIF tags of the camera file — make, model, lens, exposure, GPS, maker note — come back identical apart from `Software`, which says `Hush`; the colour profile is kept byte for byte. Checked on the real model (`e2e:real`) and in CI.                                                                                             |
+| Part                                  | Result                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Drops a 45 MP JPEG**                | Drop, paste, **Choose photo** or ⌘/Ctrl+O, anywhere on the window. The photo is on screen **1.26 s** after it is chosen (decode 0.8 s).                                                                                                                                                                                                                                    |
+| **A clear before/after at 100%**      | **Yes.** It opens at true 100% (one photo pixel per device pixel, any `devicePixelRatio`) on the photo's **noisiest region**, with the divider in the middle of a denoised tile. Measured noise (mean absolute Laplacian of luminance) at 100%: **46.8 → 6.5**.                                                                                                            |
+| **Within the preview target, cached** | **Yes, in the borderline band (≤ 3 s).** From choosing the photo: first denoised tile at the divider **1.72–1.74 s**, about 1 MP **2.9–3.0 s**, the whole 1280 × 800 view **4.9–5.2 s** (two runs). That includes decoding and building the GPU session; the model's own time for the first tile is **0.45 s**. A second photo in the same session: first tile **0.61 s**. |
+| **Exports a file whose EXIF matches** | **Yes.** All 20 EXIF tags of the camera file — make, model, lens, exposure, GPS, maker note — come back identical apart from `Software`, which says `Hush`; the colour profile is kept byte for byte. Checked on the real model (`e2e:real`) and in CI.                                                                                                                    |
 
 Measured with `pnpm --filter @hush/web e2e:real` on a synthetic 45.4 MP camera JPEG (`tools/fixtures/make_large.py`), 1280 × 800 window. On a Retina window (1440 × 900 at 2×: 2135 × 1604 device pixels of photo), a 45 MP photo shows its first tile at **1.64 s** and fills the view (25 tiles) in **11.3 s**.
 
@@ -69,21 +69,21 @@ Made during the phase, each with its reason. None changes the spec's intent.
 
 From `pnpm --filter @hush/web e2e:real` (`apps/web/e2e/real/editor.spec.ts`), WebGPU, fp16, a 1280 × 800 window at 1×.
 
-| Check                                                | Result                                                                               |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 45 MP JPEG, model cached: photo on screen            | 1.26 s (decode 0.81 s in the decode worker)                                          |
-| … first denoised tile at the divider                 | **1.72 s** (reading the model 0.09 s, GPU session 0.95 s, the tile itself 0.45 s)    |
-| … about 1 MP around the divider                      | 2.92 s                                                                               |
-| … the whole view (9 tiles)                           | 4.9 s                                                                                |
-| … noise at 100%, mean \|Laplacian\| of luminance     | 46.8 (original) → 6.5 (result)                                                       |
-| … export                                             | 91.0 s, estimated 95.8 s beforehand · 9.7 MB · 20 EXIF tags, only `Software` changed |
-| A 45 MP photo, 1440 × 900 at 2×                      | first tile 1.64 s, ~1 MP 2.85 s, whole view (25 tiles) 11.3 s; export 89.6 s         |
-| A second photo in the same session (2.7 MP)          | first tile 0.61 s                                                                    |
-| The photographer's photo (2000 × 1333, `HUSH_PHOTO`) | noise 8.6 → 2.4; export 5.5 s                                                        |
-| Processor (WASM, 7 threads), 2.7 MP                  | the tile at the divider in 1.7 s; "Export (about 25 s)"                              |
-| Cancel an export partway                             | "Stopped. Nothing was saved."; the photo is decoded again and panning carries on     |
+| Check                                                | Result                                                                                           |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| 45 MP JPEG, model cached: photo on screen            | 1.26 s (decode 0.81 s in the decode worker)                                                      |
+| … first denoised tile at the divider                 | **1.72–1.74 s** (reading the model 0.09 s, GPU session 0.95–1.04 s, the tile itself 0.45–0.49 s) |
+| … about 1 MP around the divider                      | 2.92–3.04 s                                                                                      |
+| … the whole view (9 tiles)                           | 4.9–5.2 s                                                                                        |
+| … noise at 100%, mean \|Laplacian\| of luminance     | 46.8 (original) → 6.5 (result)                                                                   |
+| … export                                             | 91.0 s, estimated 95.8 s beforehand · 9.7 MB · 20 EXIF tags, only `Software` changed             |
+| A 45 MP photo, 1440 × 900 at 2×                      | first tile 1.64 s, ~1 MP 2.85 s, whole view (25 tiles) 11.3 s; export 89.6 s                     |
+| A second photo in the same session (2.7 MP)          | first tile 0.61 s                                                                                |
+| The photographer's photo (2000 × 1333, `HUSH_PHOTO`) | noise 8.6 → 2.4; export 5.5 s                                                                    |
+| Processor (WASM, 7 threads), 2.7 MP                  | the tile at the divider in 1.7 s; "Export (about 25 s)"                                          |
+| Cancel an export partway                             | "Stopped. Nothing was saved."; the photo is decoded again and panning carries on                 |
 
-**Where the 1.72 s goes**, and what moved it. Decoding on the pipeline worker used to hold its thread for ~0.9 s while the model waited: first tile 2.4 s. The decode worker took that off the critical path (reading the model from the Cache API: 942 → 94 ms). What remains is ONNX Runtime building its WebGPU session (~0.95 s), once per page — which is why a second photo shows its first tile in 0.6 s.
+**Where the first 1.7 s goes**, and what moved it. Decoding on the pipeline worker used to hold its thread for ~0.9 s while the model waited: first tile 2.4 s. The decode worker took that off the critical path (reading the model from the Cache API: 942 → 94 ms). What remains is ONNX Runtime building its WebGPU session (~0.95 s), once per page — which is why a second photo shows its first tile in 0.6 s.
 
 **Against §4.6.** The spec's preview row (≤ 1.5 s go, ≤ 3 s borderline) is the model's time for a ~1 MP crop with the session ready. Phase 0 measured 1.8 s for one 1120² tile (borderline). The editor's first 512² tile takes 0.45 s and four of them (~1 MP) about 1.6 s: the same borderline band, the same model speed — [Phase 0's speed question](phase-0-results.md#what-to-decide) is still open, and the preview design means less of it is waited for.
 

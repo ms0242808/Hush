@@ -24,7 +24,17 @@ export default defineConfig({
 		trace: 'retain-on-failure',
 		locale: 'en-US',
 	},
-	projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+	projects: [
+		{
+			name: 'chromium',
+			use: {
+				...devices['Desktop Chrome'],
+				// CI runners have no GPU: let WebGL fall back to SwiftShader, so the viewer's WebGL2
+				// renderer (and its shader-vs-core test) runs there too. A real GPU is still preferred.
+				launchOptions: { args: ['--enable-unsafe-swiftshader'] },
+			},
+		},
+	],
 	webServer: {
 		command: `pnpm exec wrangler dev --config ../../deploy/cloudflare/wrangler.jsonc --assets dist-e2e --port ${port} --ip 127.0.0.1`,
 		url: `http://127.0.0.1:${port}/`,
