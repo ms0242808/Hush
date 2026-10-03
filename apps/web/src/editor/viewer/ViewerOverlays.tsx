@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { Eye, EyeOff } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { describeError } from '@/app/errors';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useThrottled } from '@/lib/use-throttled';
 import { formatMegabytes } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { EditorSession } from '../session';
@@ -76,21 +76,6 @@ export function ViewerToolbar() {
 			)}
 		</div>
 	);
-}
-
-/** A status message read out at most every few seconds: progress must not chatter (§5.10). */
-function useThrottled(text: string, ms = 4000): string {
-	const [spoken, setSpoken] = useState(text);
-	const last = useRef(0);
-	useEffect(() => {
-		const wait = Math.max(0, last.current + ms - Date.now());
-		const timer = window.setTimeout(() => {
-			last.current = Date.now();
-			setSpoken(text);
-		}, wait);
-		return () => window.clearTimeout(timer);
-	}, [text, ms]);
-	return spoken;
 }
 
 /**

@@ -21,6 +21,7 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip } from '@/components/ui/tooltip';
 import { formatDuration } from '@/lib/duration';
+import { useThrottled } from '@/lib/use-throttled';
 import { canSaveToFolder, canShareFiles, type SaveMethod } from '@/lib/save';
 import { QUALITY_RANGE, type ExportSettings, type Processing } from '@/lib/settings';
 import { cn } from '@/lib/utils';
@@ -153,6 +154,17 @@ function ExportProgress({ session }: { session: EditorSession }) {
 			break;
 	}
 	const eta = exporting.stage === 'processing' && exporting.etaMs !== null ? exporting.etaMs : null;
+	const percent = value === null ? null : Math.round(value * 100);
+	const announced = useThrottled(
+		[
+			label,
+			percent === null ? '' : `${percent}%`,
+			eta === null ? '' : t('export.left', { time: formatDuration(eta, t) }),
+		]
+			.filter(Boolean)
+			.join(' · '),
+		5000,
+	);
 	return (
 		<div
 			className="enter-up flex flex-col gap-2.5 rounded-xl border border-line bg-sunken/60 p-3"
@@ -163,6 +175,9 @@ function ExportProgress({ session }: { session: EditorSession }) {
 				<span className="tabular text-fg-subtle">{detail}</span>
 			</div>
 			<Progress value={value} label={label} />
+			<p className="sr-only" aria-live="polite">
+				{announced}
+			</p>
 			<div className="flex items-center justify-between gap-3">
 				<span className="text-[12px] text-fg-subtle">
 					{eta !== null ? t('export.left', { time: formatDuration(eta, t) }) : ' '}
