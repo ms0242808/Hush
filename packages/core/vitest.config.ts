@@ -7,5 +7,8 @@ export default defineProject({
 		name: 'core',
 		environment: 'node',
 		include: ['test/**/*.test.ts'],
+		// Some tests push whole photos through the pipeline (a 102 MP one among them): seconds of
+		// real work that a busy CI runner may stretch past the default five.
+		testTimeout: 30_000,
 	},
 });

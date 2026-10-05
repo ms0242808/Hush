@@ -89,12 +89,17 @@ describe('the preview scheduler', () => {
 			planned: scheduler.status.planned,
 			running: false,
 		});
+		// One assertion over every pixel, not one per pixel.
+		let wrong = 0;
 		for (let p = 0; p < out.pixels.length; p += 4) {
-			expect(out.pixels[p]).toBe(255 - image.data[p]!);
-			expect(out.pixels[p + 1]).toBe(255 - image.data[p + 1]!);
-			expect(out.pixels[p + 2]).toBe(255 - image.data[p + 2]!);
-			expect(out.pixels[p + 3]).toBe(255);
+			const exact =
+				out.pixels[p] === 255 - image.data[p]! &&
+				out.pixels[p + 1] === 255 - image.data[p + 1]! &&
+				out.pixels[p + 2] === 255 - image.data[p + 2]! &&
+				out.pixels[p + 3] === 255;
+			if (!exact) wrong++;
 		}
+		expect(wrong).toBe(0);
 	});
 
 	it('starts with the tile under the divider, on the side that shows the result', async () => {

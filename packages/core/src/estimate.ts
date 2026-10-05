@@ -59,3 +59,36 @@ export function msPerPixel(samples: readonly { ms: number; pixels: number }[]): 
 	const middle = Math.floor(rates.length / 2);
 	return rates.length % 2 === 1 ? rates[middle]! : (rates[middle - 1]! + rates[middle]!) / 2;
 }
+
+/** A photo of a batch, as far as the estimate cares. */
+export interface BatchEstimatePhoto {
+	width: number;
+	height: number;
+	format: OutputFormat;
+}
+
+/**
+ * How long a batch will take on this machine (§5.12: "This batch would take
+ * about 14 hours on this computer"), summed photo by photo, with `decodeMs`
+ * per megapixel for reading each one in. Photos whose size isn't known yet
+ * count as the average of the rest.
+ */
+export function estimateBatchMs(
+	photos: readonly (BatchEstimatePhoto | null)[],
+	tile: TileConventions,
+	msPerModelPixel: number,
+	decodeMsPerMegapixel = DECODE_MS_PER_MEGAPIXEL,
+): number {
+	const known = photos.filter((photo): photo is BatchEstimatePhoto => photo !== null);
+	if (known.length === 0) return 0;
+	const each = known.map(
+		(photo) =>
+			estimateExportMs({ ...photo, tile, msPerModelPixel }) +
+			((photo.width * photo.height) / 1e6) * decodeMsPerMegapixel,
+	);
+	const sum = each.reduce((total, ms) => total + ms, 0);
+	return sum + (photos.length - known.length) * (sum / known.length);
+}
+
+/** MozJPEG decoding, per megapixel (0.8 s for 45 MP on an M1 Pro). Only for the estimate. */
+export const DECODE_MS_PER_MEGAPIXEL = 18;
