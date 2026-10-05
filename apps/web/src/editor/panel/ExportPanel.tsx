@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { cleanSuffix, defaultOutputFormat, outputName, type OutputFormat } from '@hush/core';
+import { cleanSuffix, defaultOutputFormat, outputName, type Format, type OutputFormat } from '@hush/core';
 import { AlertTriangle, Check, ChevronDown, Download, FolderOpen, HardDriveDownload, Share } from 'lucide-react';
 import { useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -66,8 +66,22 @@ export function ExportPanel({ session, disabled }: { session: EditorSession; dis
 				</Tooltip>
 			)}
 			<SaveStatus session={session} />
-			<Advanced session={session} disabled={!!exporting} />
+			<EditorAdvanced session={session} disabled={!!exporting} />
 		</div>
+	);
+}
+
+/** The single photo's Advanced: its own name and location in the preview; another backend reopens it. */
+function EditorAdvanced({ session, disabled }: { session: EditorSession; disabled: boolean }) {
+	const { t } = useTranslation();
+	const photo = useEditor((state) => state.photo);
+	return (
+		<Advanced
+			disabled={disabled}
+			sample={photo ? { name: photo.name, format: photo.format === 'synthetic' ? 'png' : photo.format } : null}
+			locationNote={photo?.hadLocation ? t('advanced.hasLocation') : t('advanced.noLocation')}
+			onProcessingChange={() => void session.reopen()} // one runtime per worker: another backend means opening the photo again
+		/>
 	);
 }
 
@@ -280,20 +294,35 @@ function SaveStatus({ session }: { session: EditorSession }) {
 	return null;
 }
 
-/** Everything that isn't the one job, behind one disclosure (§5.13). */
-function Advanced({ session, disabled }: { session: EditorSession; disabled: boolean }) {
+/**
+ * Everything that isn't the one job, behind one disclosure (§5.13): format,
+ * quality, suffix, location, and graphics chip or processor. The editor shows
+ * it for its photo; a batch for all of its photos at once.
+ */
+export function Advanced({
+	disabled,
+	sample,
+	locationNote,
+	onProcessingChange,
+}: {
+	disabled: boolean;
+	/** The photo whose saved name the suffix preview shows. */
+	sample: { name: string; format: Format } | null;
+	/** Whether there's a location to remove. */
+	locationNote: string;
+	onProcessingChange: () => void;
+}) {
 	const { t } = useTranslation();
 	const [open, setOpen] = useState(false);
 	const id = useId();
 	const settings = useEditor((state) => state.exportSettings);
-	const photo = useEditor((state) => state.photo);
 	const processing = useEditor((state) => state.processing);
 	const backend = useEditor((state) => state.backend);
 
-	const source = photo && photo.format !== 'synthetic' ? photo.format : 'jpeg';
+	const source = sample?.format ?? 'jpeg';
 	const format: OutputFormat = settings.format === 'auto' ? defaultOutputFormat(source) : settings.format;
 	const lossy = format === 'jpeg' || format === 'webp';
-	const preview = photo ? outputName(photo.name, format, settings.suffix) : null;
+	const preview = sample ? outputName(sample.name, format, settings.suffix) : null;
 	const update = (patch: Partial<ExportSettings>) => updateExportSettings(patch);
 
 	return (
@@ -369,9 +398,7 @@ function Advanced({ session, disabled }: { session: EditorSession; disabled: boo
 					<label className="flex items-start justify-between gap-3">
 						<span className="flex flex-col gap-0.5">
 							<span className="text-[13px] text-fg-muted">{t('advanced.removeLocation')}</span>
-							<span className="text-[12px] text-fg-subtle">
-								{photo?.hadLocation ? t('advanced.hasLocation') : t('advanced.noLocation')}
-							</span>
+							<span className="text-[12px] text-fg-subtle">{locationNote}</span>
 						</span>
 						<Switch
 							checked={settings.removeLocation}
@@ -393,7 +420,7 @@ function Advanced({ session, disabled }: { session: EditorSession; disabled: boo
 							]}
 							onChange={(value) => {
 								setProcessing(value);
-								void session.reopen(); // one runtime per worker: another backend means opening the photo again
+								onProcessingChange();
 							}}
 						/>
 						{backend && (

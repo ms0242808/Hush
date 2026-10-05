@@ -381,7 +381,7 @@ test.describe('saving to a folder (§2.8, §5.13)', () => {
 		const keys = await page.evaluate(
 			() =>
 				new Promise<string[]>((resolve, reject) => {
-					const open = indexedDB.open('hush', 1);
+					const open = indexedDB.open('hush');
 					open.onsuccess = () => {
 						const request = open.result.transaction('handles').objectStore('handles').getAllKeys();
 						request.onsuccess = () => resolve(request.result.map(String));

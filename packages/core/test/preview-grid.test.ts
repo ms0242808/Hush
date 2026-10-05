@@ -47,10 +47,10 @@ describe('the preview grid', () => {
 			const store = tiles(grid, () => 137);
 			const { out, covered } = composite(grid, store, whole(grid));
 			expect(covered).toBe(grid.width * grid.height);
-			for (let p = 0; p < out.length; p += 4) {
-				expect(out[p]).toBe(137);
-				expect(out[p + 3]).toBe(255);
-			}
+			// One assertion over every pixel, not one per pixel: same check, a hundred times faster.
+			let wrong = 0;
+			for (let p = 0; p < out.length; p += 4) if (out[p] !== 137 || out[p + 3] !== 255) wrong++;
+			expect(wrong).toBe(0);
 		});
 	}
 
@@ -87,12 +87,14 @@ describe('the preview grid', () => {
 		const store = tiles(grid, (i, j) => 100 + 4 * bias(i, j));
 		const { out } = composite(grid, store, whole(grid));
 		const at = (x: number, y: number) => out[(y * grid.width + x) * 4]!;
+		let steepest = 0;
 		for (let y = 0; y < grid.height; y++) {
 			for (let x = 0; x < grid.width; x++) {
-				if (x > 0) expect(Math.abs(at(x, y) - at(x - 1, y))).toBeLessThanOrEqual(1);
-				if (y > 0) expect(Math.abs(at(x, y) - at(x, y - 1))).toBeLessThanOrEqual(1);
+				if (x > 0) steepest = Math.max(steepest, Math.abs(at(x, y) - at(x - 1, y)));
+				if (y > 0) steepest = Math.max(steepest, Math.abs(at(x, y) - at(x, y - 1)));
 			}
 		}
+		expect(steepest).toBeLessThanOrEqual(1);
 	});
 
 	it('reproduces the image exactly where the tiles agree', () => {

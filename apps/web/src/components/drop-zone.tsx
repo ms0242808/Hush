@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { ImagePlus } from 'lucide-react';
+import { FolderOpen, ImagePlus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -7,9 +7,12 @@ import { cn } from '@/lib/utils';
 interface DropZoneProps {
 	over: boolean;
 	onChoose: () => void;
+	/** Chrome and Edge: a folder of photos, kept so its batch can resume after a reload (§2.7). */
+	onChooseFolder: (() => void) | null;
 }
 
-export function DropZone({ over, onChoose }: DropZoneProps) {
+/** §5.2: the first paint. One photo opens the editor; several, or a folder, make a batch. */
+export function DropZone({ over, onChoose, onChooseFolder }: DropZoneProps) {
 	const { t } = useTranslation();
 	return (
 		<section
@@ -37,9 +40,17 @@ export function DropZone({ over, onChoose }: DropZoneProps) {
 				</h1>
 				<p className="text-[13px] text-fg-subtle">{t('drop.hint')}</p>
 			</div>
-			<Button variant="primary" size="lg" onClick={onChoose}>
-				{t('drop.choose')}
-			</Button>
+			<div className="flex flex-wrap items-center justify-center gap-2">
+				<Button variant="primary" size="lg" onClick={onChoose}>
+					{t('drop.choose')}
+				</Button>
+				{onChooseFolder && (
+					<Button variant="secondary" size="lg" onClick={onChooseFolder}>
+						<FolderOpen aria-hidden="true" />
+						{t('drop.chooseFolder')}
+					</Button>
+				)}
+			</div>
 		</section>
 	);
 }

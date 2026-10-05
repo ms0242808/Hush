@@ -6,8 +6,8 @@ import { expect, test } from './fixtures';
 test.describe('first visit', () => {
 	test('opens on a drop zone with the privacy promise', async ({ page }) => {
 		await page.goto('/');
-		await expect(page.getByRole('heading', { name: 'Drop a photo here to remove noise' })).toBeVisible();
-		await expect(page.getByRole('button', { name: 'Choose photo' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Drop photos here to remove noise' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Choose photos' })).toBeVisible();
 		await expect(page.getByText('Your photos stay on this device. Nothing is uploaded.')).toBeVisible();
 		await expect(page).toHaveTitle(/Hush/);
 	});
@@ -32,7 +32,7 @@ test.describe('first visit', () => {
 			if (/\/models\/|\/ort\//.test(request.url())) heavy.push(request.url());
 		});
 		await page.goto('/');
-		await expect(page.getByRole('button', { name: 'Choose photo' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Choose photos' })).toBeVisible();
 		await page.waitForLoadState('networkidle');
 		expect(heavy).toEqual([]);
 	});
@@ -53,7 +53,7 @@ test.describe('first visit', () => {
 
 		test('falls back to English rather than Traditional Chinese', async ({ page }) => {
 			await page.goto('/');
-			await expect(page.getByRole('heading', { name: 'Drop a photo here to remove noise' })).toBeVisible();
+			await expect(page.getByRole('heading', { name: 'Drop photos here to remove noise' })).toBeVisible();
 		});
 	});
 
@@ -64,6 +64,6 @@ test.describe('first visit', () => {
 		await page.reload();
 		await expect(page.getByRole('heading', { name: '將相片拖曳至此以降低雜訊' })).toBeVisible();
 		await page.getByRole('radio', { name: 'English' }).click();
-		await expect(page.getByRole('heading', { name: 'Drop a photo here to remove noise' })).toBeVisible();
+		await expect(page.getByRole('heading', { name: 'Drop photos here to remove noise' })).toBeVisible();
 	});
 });

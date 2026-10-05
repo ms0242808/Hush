@@ -79,7 +79,7 @@ test.describe('no usable GPU', () => {
 	test('a hardware WebGPU adapter: no notice at all', async ({ page }) => {
 		await mockGpu(page, { webgpu: 'adapter', renderer: INTEL_IRIS, chromium: true });
 		await page.goto('/');
-		await expect(page.getByRole('button', { name: 'Choose photo' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Choose photos' })).toBeVisible();
 		await page.waitForTimeout(300); // detection is async; give a notice the chance to (wrongly) appear
 		await expect(notice(page)).toHaveCount(0);
 	});
@@ -138,7 +138,7 @@ test.describe('no usable GPU', () => {
 		await expect(notice(page)).toContainText('Hardware acceleration is turned off');
 
 		const chooser = page.waitForEvent('filechooser');
-		await page.getByRole('button', { name: 'Choose photo' }).click();
+		await page.getByRole('button', { name: 'Choose photos' }).click();
 		await (await chooser).setFiles(fixture('noisy-gradient.png'));
 		await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled();
 		await page.getByRole('button', { name: 'Advanced' }).click();

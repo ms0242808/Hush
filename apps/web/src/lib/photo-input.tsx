@@ -1,29 +1,32 @@
 // SPDX-License-Identifier: Apache-2.0
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { readDataTransfer, type PhotoSelection } from './batch-input.ts';
 
 export const ACCEPT =
 	'image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif';
 
-function firstFile(list: FileList | null | undefined): File | null {
-	return list && list.length > 0 ? list[0]! : null;
+/** Files as a selection: no folder behind them. */
+export function filesSelection(files: readonly File[]): PhotoSelection {
+	return { files: [...files], folder: null, folderName: null, ignored: 0 };
 }
 
-/** The hidden file input behind "Choose photo" and ⌘/Ctrl+O. */
-export function useFilePicker(onFile: (file: File) => void) {
+/** The hidden file input behind "Choose photos" and ⌘/Ctrl+O. One photo opens the editor; more make a batch. */
+export function useFilePicker(onFiles: (files: File[]) => void) {
 	const input = useRef<HTMLInputElement>(null);
 	const element = (
 		<input
 			ref={input}
 			type="file"
 			accept={ACCEPT}
+			multiple
 			className="sr-only"
 			tabIndex={-1}
 			aria-hidden="true"
 			data-testid="file-input"
 			onChange={(event) => {
-				const file = firstFile(event.currentTarget.files);
-				event.currentTarget.value = ''; // choosing the same file again still fires
-				if (file) onFile(file);
+				const files = [...(event.currentTarget.files ?? [])];
+				event.currentTarget.value = ''; // choosing the same files again still fires
+				if (files.length > 0) onFiles(files);
 			}}
 		/>
 	);
@@ -31,21 +34,27 @@ export function useFilePicker(onFile: (file: File) => void) {
 }
 
 /**
- * The whole window accepts a dropped or pasted photo; the drop zone only shows
- * where. Drag state is counted, because dragenter/dragleave fire for every
- * child element the pointer crosses.
+ * The whole window accepts dropped or pasted photos — or a dropped folder —
+ * and the drop zone only shows where. Drag state is counted, because
+ * dragenter/dragleave fire for every child element the pointer crosses.
  */
-export function useWindowDrop(onFile: (file: File) => void, enabled: boolean) {
+export function useWindowDrop(onSelection: (selection: PhotoSelection) => void, enabled: boolean) {
 	const [over, setOver] = useState(false);
 	const depth = useRef(0);
-	const latest = useRef(onFile);
+	const latest = useRef(onSelection);
 	useLayoutEffect(() => {
-		latest.current = onFile;
+		latest.current = onSelection;
 	});
 
 	useEffect(() => {
 		if (!enabled) return;
 		const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes('Files') ?? false;
+		const deliver = (data: DataTransfer | null) => {
+			// Read now: the browser empties the DataTransfer once the handler returns.
+			void readDataTransfer(data).then((selection) => {
+				if (selection.files.length > 0 || selection.folder) latest.current(selection);
+			});
+		};
 		const enter = (event: DragEvent) => {
 			if (!hasFiles(event)) return;
 			event.preventDefault();
@@ -67,15 +76,12 @@ export function useWindowDrop(onFile: (file: File) => void, enabled: boolean) {
 			event.preventDefault();
 			depth.current = 0;
 			setOver(false);
-			const file = firstFile(event.dataTransfer?.files);
-			if (file) latest.current(file);
+			deliver(event.dataTransfer);
 		};
 		const paste = (event: ClipboardEvent) => {
-			const file = firstFile(event.clipboardData?.files);
-			if (file) {
-				event.preventDefault();
-				latest.current(file);
-			}
+			if (!event.clipboardData || event.clipboardData.files.length === 0) return;
+			event.preventDefault();
+			deliver(event.clipboardData);
 		};
 		window.addEventListener('dragenter', enter);
 		window.addEventListener('dragover', overHandler);

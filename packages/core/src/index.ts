@@ -25,4 +25,6 @@ export * from './noise.ts';
 export * from './preview-grid.ts';
 export * from './estimate.ts';
 export * from './preview.ts';
+export * from './batch.ts';
+export * from './zip.ts';
 export * from './metadata/index.ts';

@@ -108,7 +108,7 @@ test.describe('one photo', () => {
 		await choosePhoto(page, 'not-a-photo.txt');
 		await expect(page.getByRole('alert')).toContainText("not-a-photo.txt isn't a format Hush can open yet.");
 		await page.getByRole('button', { name: 'Open another photo' }).click();
-		await expect(page.getByRole('button', { name: 'Choose photo' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Choose photos' })).toBeVisible();
 	});
 
 	test('a damaged photo gets a clear message that stays, while the model download carries on', async ({ page }) => {
@@ -121,7 +121,7 @@ test.describe('one photo', () => {
 		await expect(alert).toBeVisible();
 		await expect(page.getByRole('progressbar')).toHaveCount(0);
 		await page.getByRole('button', { name: 'Open another photo' }).click();
-		await expect(page.getByRole('button', { name: 'Choose photo' })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Choose photos' })).toBeVisible();
 	});
 
 	test('a model that returns NaN is refused instead of exporting a black photo', async ({ page }) => {

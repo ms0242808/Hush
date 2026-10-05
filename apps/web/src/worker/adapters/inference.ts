@@ -176,6 +176,8 @@ export interface FaultPlan {
 	outOfMemoryAbove?: number;
 	/** Lose the device on this run (1-based, counted from when the plan was set). */
 	loseDeviceOnRun?: number;
+	/** Take at least this long per tile, so a test can act while a photo is partway (pause, cancel). */
+	delayMs?: number;
 }
 
 export interface SessionOptions {
@@ -199,6 +201,8 @@ export class OrtSession implements InferenceSession {
 	private gpu: WatchedDevice | null = null;
 	private faults: FaultPlan = {};
 	private runs = 0;
+	/** The run in progress, if any: the next one starts after it settles. */
+	private queue: Promise<void> = Promise.resolve();
 	private readonly ort: Ort;
 	/** Kept only on WebGPU, where a lost device means building the session again. */
 	private readonly model: Uint8Array | null;
@@ -250,10 +254,25 @@ export class OrtSession implements InferenceSession {
 		this.runs = 0;
 	}
 
-	async run(input: Float32Array, width: number, height: number): Promise<Float32Array> {
+	/**
+	 * One tile at a time, whoever asks: ONNX Runtime's WebGPU build can't be
+	 * re-entered while a run is suspended, and a preview tile can still be in
+	 * flight when an export, a batch or a speed check starts.
+	 */
+	run(input: Float32Array, width: number, height: number): Promise<Float32Array> {
+		const turn = this.queue.then(() => this.runNow(input, width, height));
+		this.queue = turn.then(
+			() => {},
+			() => {},
+		);
+		return turn;
+	}
+
+	private async runNow(input: Float32Array, width: number, height: number): Promise<Float32Array> {
 		const session = this.session;
 		if (!session) throw new Error('The session was released');
 		this.runs++;
+		if (this.faults.delayMs) await new Promise((resolve) => setTimeout(resolve, this.faults.delayMs));
 		if (this.faults.outOfMemoryAbove !== undefined && width * height > this.faults.outOfMemoryAbove) {
 			throw new InferenceError('out-of-memory', `Injected: ${width}×${height} tile is over the memory budget`);
 		}

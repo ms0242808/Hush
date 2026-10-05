@@ -12,8 +12,9 @@ import {
 	type PreviewUpdate,
 	type Rect,
 	type Size,
+	type TileConventions,
 } from '@hush/core';
-import { isCancelled, usableElsewhere } from '@/app/errors';
+import { isCancelled, isRetryable, usableElsewhere } from '@/app/errors';
 import { detectCapabilities, type Capabilities } from '@/lib/capabilities';
 import { isSaveData, modelOverride } from '@/lib/defaults';
 import { recordError } from '@/lib/diagnostics';
@@ -228,6 +229,49 @@ export class EditorSession {
 			});
 		}
 		return result;
+	}
+
+	/**
+	 * The model, ready in the pipeline worker, for a batch (§2.7): the same
+	 * worker and runtime the editor uses, so moving between the grid and a
+	 * photo never loads it twice. Falls back to the processor like opening a
+	 * photo does (§2.10).
+	 */
+	async modelForBatch(): Promise<{ api: Pipeline; prepared: PrepareResult; tile: TileConventions }> {
+		const id = this.generation;
+		const capabilities = await this.capabilities;
+		let backend = this.chooseBackend(capabilities);
+		for (;;) {
+			const api = this.ensurePipeline(backend);
+			useEditor.setState({ backend });
+			try {
+				const prepared = await this.prepareModel(api, backend, id);
+				const model = pickModel(await api.manifest(), 'denoise', modelOverride());
+				return {
+					api,
+					prepared,
+					tile: { size: prepared.tileSize, overlap: model.tile.overlap, padMultiple: model.tile.padMultiple },
+				};
+			} catch (error) {
+				if (backend === 'webgpu' && usableElsewhere(error)) {
+					console.warn('WebGPU failed; using the processor instead.', error);
+					record(error);
+					this.dropPipeline();
+					backend = 'wasm';
+					continue;
+				}
+				if (!isCancelled(error)) {
+					record(error);
+					useEditor.setState({ model: { status: 'failed', error: toError(error), retry: isRetryable(error) } });
+				}
+				throw error;
+			}
+		}
+	}
+
+	/** Forget the loaded model and worker, e.g. to try again after a failure or on another backend. */
+	resetModel(): void {
+		this.dropPipeline();
 	}
 
 	/** §5.6: the user agreed to download the model on a metered connection. */
