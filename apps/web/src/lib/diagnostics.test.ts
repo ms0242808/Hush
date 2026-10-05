@@ -44,6 +44,24 @@ describe('Copy diagnostics (§4.7, §5.12)', () => {
 		expect(text).toContain('Errors: none');
 	});
 
+	it('counts a batch, without a single file or folder name', () => {
+		const text = diagnosticsText({
+			...base,
+			batch: {
+				photos: 100,
+				megapixels: 4544.2,
+				destination: 'folder',
+				saved: 47,
+				failed: 1,
+				skipped: 50,
+				secondsPerPhoto: 92.84,
+			},
+		});
+		expect(text).toContain(
+			'Batch: 100 photos · 4544 MP · to folder · 47 saved, 1 failed, 50 skipped · 92.8 s per photo',
+		);
+	});
+
 	it('records errors by name and code, never by message (messages can quote a file name)', () => {
 		const tooLarge = Object.assign(new Error('IMG_2041.JPG is too large'), { name: 'PhotoTooLargeError' });
 		const memory = Object.assign(new Error('out of memory at IMG_2041.JPG'), {

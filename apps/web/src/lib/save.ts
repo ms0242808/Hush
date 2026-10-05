@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import { asDirectory, deleteValue, getValue, putValue } from './idb.ts';
 
 /**
  * Where an export goes (§2.8) and how Hush makes sure it got there (§5.13:
@@ -116,7 +117,7 @@ export function numberedName(name: string, n: number): string {
 }
 
 /** Whether the folder already holds something called `name` (a file, or a folder: TypeMismatchError). */
-async function taken(folder: FileSystemDirectoryHandle, name: string): Promise<boolean> {
+export async function taken(folder: FileSystemDirectoryHandle, name: string): Promise<boolean> {
 	try {
 		await folder.getFileHandle(name);
 		return true;
@@ -150,17 +151,22 @@ async function writeToFolder(folder: FileSystemDirectoryHandle, file: ExportedFi
 	return { name, method: 'folder', folder: folder.name };
 }
 
-function download(file: ExportedFile): SavedFile {
-	const url = URL.createObjectURL(new Blob([file.bytes as Uint8Array<ArrayBuffer>], { type: file.mimeType }));
+/** Hand a file to the browser's downloads. */
+export function downloadBlob(blob: Blob, name: string): void {
+	const url = URL.createObjectURL(blob);
 	const link = document.createElement('a');
 	link.href = url;
-	link.download = file.name;
+	link.download = name;
 	link.rel = 'noopener';
 	document.body.append(link);
 	link.click();
 	link.remove();
 	// The browser reads the blob asynchronously; keep it long enough for a slow disk.
 	window.setTimeout(() => URL.revokeObjectURL(url), 120_000);
+}
+
+function download(file: ExportedFile): SavedFile {
+	downloadBlob(new Blob([file.bytes as Uint8Array<ArrayBuffer>], { type: file.mimeType }), file.name);
 	return { name: file.name, method: 'download' };
 }
 
@@ -192,39 +198,11 @@ export async function saveExport(
 
 // ── The chosen folder, remembered across visits (§2.7: folder handles in IndexedDB) ──
 
-const DATABASE = 'hush';
-const STORE = 'handles';
 const FOLDER_KEY = 'export-folder';
-
-function database(): Promise<IDBDatabase> {
-	return new Promise((resolve, reject) => {
-		const request = indexedDB.open(DATABASE, 1);
-		request.onupgradeneeded = () => request.result.createObjectStore(STORE);
-		request.onsuccess = () => resolve(request.result);
-		request.onerror = () => reject(request.error ?? new Error('IndexedDB is unavailable'));
-	});
-}
-
-async function transact<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
-	const db = await database();
-	try {
-		return await new Promise<T>((resolve, reject) => {
-			const request = run(db.transaction(STORE, mode).objectStore(STORE));
-			request.onsuccess = () => resolve(request.result);
-			request.onerror = () => reject(request.error ?? new Error('IndexedDB request failed'));
-		});
-	} finally {
-		db.close();
-	}
-}
 
 export async function rememberFolder(handle: FileSystemDirectoryHandle | null): Promise<void> {
 	try {
-		await transact<unknown>('readwrite', (store) =>
-			handle
-				? (store.put(handle, FOLDER_KEY) as IDBRequest<unknown>)
-				: (store.delete(FOLDER_KEY) as IDBRequest<unknown>),
-		);
+		await (handle ? putValue('handles', FOLDER_KEY, handle) : deleteValue('handles', FOLDER_KEY));
 	} catch {
 		// Storage blocked: the folder still works for this visit.
 	}
@@ -232,10 +210,7 @@ export async function rememberFolder(handle: FileSystemDirectoryHandle | null): 
 
 export async function recallFolder(): Promise<FileSystemDirectoryHandle | null> {
 	try {
-		const value = await transact<unknown>('readonly', (store) => store.get(FOLDER_KEY));
-		return value && typeof value === 'object' && (value as { kind?: unknown }).kind === 'directory'
-			? (value as FileSystemDirectoryHandle)
-			: null;
+		return asDirectory(await getValue('handles', FOLDER_KEY));
 	} catch {
 		return null;
 	}

@@ -33,6 +33,17 @@ export interface Diagnostics {
 		modelFromCache: boolean | null;
 	};
 	photo: { format: string; megapixels: number; bitDepth: number; colour: string; orientation: number } | null;
+	/** A batch (§2.7), counted: never its file names or folder names. */
+	batch?: {
+		photos: number;
+		megapixels: number;
+		destination: 'folder' | 'zip' | 'none';
+		saved: number;
+		failed: number;
+		skipped: number;
+		/** Measured, pauses excluded. */
+		secondsPerPhoto: number | null;
+	};
 	timings: { label: string; ms: number }[];
 	errors: { name: string; code: string | null; count: number }[];
 }
@@ -61,6 +72,13 @@ export function diagnosticsText(d: Diagnostics): string {
 		const { format, megapixels, bitDepth, colour, orientation } = d.photo;
 		lines.push(
 			`Photo: ${format} · ${megapixels.toFixed(1)} MP · ${bitDepth}-bit · colour: ${colour} · orientation ${orientation}`,
+		);
+	}
+	if (d.batch) {
+		const b = d.batch;
+		const pace = b.secondsPerPhoto === null ? '' : ` · ${b.secondsPerPhoto.toFixed(1)} s per photo`;
+		lines.push(
+			`Batch: ${b.photos} photos · ${Math.round(b.megapixels)} MP · to ${b.destination} · ${b.saved} saved, ${b.failed} failed, ${b.skipped} skipped${pace}`,
 		);
 	}
 	if (d.timings.length > 0) {

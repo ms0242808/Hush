@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
-import { ImagePlus, Info } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { ChevronLeft, ImagePlus, Info } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { describeError } from '@/app/errors';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
+import type { PhotoSelection } from '@/lib/batch-input';
 import { COMMAND_KEY } from '@/lib/keys';
 import { useWindowDrop } from '@/lib/photo-input';
 import { cn } from '@/lib/utils';
@@ -17,18 +18,34 @@ import { resetParams, setZoom, toggleOriginal, useEditor } from './store';
 import { Viewer } from './viewer/Viewer';
 import { ViewerStatus, ViewerToolbar } from './viewer/ViewerOverlays';
 
+/** A photo opened from a batch's grid (§5.4): its settings are the batch's. */
+export interface EditorBatch {
+	/** Where this photo is in the batch, from 1. */
+	index: number;
+	count: number;
+	/** Back to the grid. */
+	onBack: () => void;
+	/** §5.8: ← → move to the previous or next photo. */
+	onStep: (delta: -1 | 1) => void;
+	/** ⌘/Ctrl+E: export the batch. */
+	onExport: () => void;
+	/** In place of the single photo's export: the batch's save location and Export button. */
+	exportArea: ReactNode;
+}
+
 export interface EditorProps {
 	file: File;
 	/** Changes with every open request, so choosing the same file again opens it again. */
 	request: number;
-	/** A new photo was dropped, pasted or chosen. */
-	onFile: (file: File) => void;
+	/** Photos were dropped, pasted or chosen: one replaces this photo, more make a batch. */
+	onSelection: (selection: PhotoSelection) => void;
 	/** Open the file picker (⌘/Ctrl+O). */
 	onPick: () => void;
 	/** Back to the empty drop zone. */
 	onClose: () => void;
 	/** The shortcut list (?). */
 	onShortcuts: () => void;
+	batch?: EditorBatch;
 }
 
 /** The panel is this wide on desktop; the viewer gets the rest (§5.1: the photo gets the space). */
@@ -51,7 +68,7 @@ const typing = (target: EventTarget | null) =>
  * before/after divider, four sliders, export (§5.13). Everything else sits
  * behind one Advanced disclosure.
  */
-export default function Editor({ file, request, onFile, onPick, onClose, onShortcuts }: EditorProps) {
+export default function Editor({ file, request, onSelection, onPick, onClose, onShortcuts, batch }: EditorProps) {
 	const { t } = useTranslation();
 	const session = editorSession();
 	const phase = useEditor((state) => state.phase);
@@ -64,13 +81,13 @@ export default function Editor({ file, request, onFile, onPick, onClose, onShort
 		void session.open(file, expectedViewport());
 	}, [file, request, session]);
 
-	// Another photo dropped or pasted anywhere replaces this one, except mid-export.
-	const over = useWindowDrop(onFile, !exporting);
+	// Another photo dropped or pasted anywhere replaces this one (or joins the batch), except mid-export.
+	const over = useWindowDrop(onSelection, !exporting);
 
 	// §5.8. None of these animate: keyboard actions are repeated too often to wait for.
-	const latest = useRef({ onPick, onShortcuts, session });
+	const latest = useRef({ onPick, onShortcuts, session, batch });
 	useLayoutEffect(() => {
-		latest.current = { onPick, onShortcuts, session };
+		latest.current = { onPick, onShortcuts, session, batch };
 	});
 	useEffect(() => {
 		const onKey = (event: KeyboardEvent) => {
@@ -83,7 +100,8 @@ export default function Editor({ file, request, onFile, onPick, onClose, onShort
 				if (!state.exporting) latest.current.onPick();
 			} else if (command && key === 'e') {
 				event.preventDefault();
-				void latest.current.session.export();
+				if (latest.current.batch) latest.current.batch.onExport();
+				else void latest.current.session.export();
 			} else if (command && key === 'z' && !event.shiftKey) {
 				if (state.exporting) return;
 				event.preventDefault();
@@ -99,6 +117,11 @@ export default function Editor({ file, request, onFile, onPick, onClose, onShort
 			} else if (event.key === '?') {
 				event.preventDefault();
 				latest.current.onShortcuts();
+			} else if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && latest.current.batch) {
+				// The viewer, sliders and segmented controls use the arrows themselves, and say so.
+				if (event.defaultPrevented || state.exporting) return;
+				event.preventDefault();
+				latest.current.batch.onStep(event.key === 'ArrowLeft' ? -1 : 1);
 			}
 		};
 		window.addEventListener('keydown', onKey);
@@ -111,7 +134,8 @@ export default function Editor({ file, request, onFile, onPick, onClose, onShort
 				message={describeError(openError.error, t, file.name)}
 				retry={openError.retry}
 				onRetry={() => void session.open(file, expectedViewport())}
-				onClose={onClose}
+				onClose={batch ? batch.onBack : onClose}
+				closeLabel={batch ? t('batch.back') : t('result.another')}
 			/>
 		);
 	}
@@ -141,7 +165,7 @@ export default function Editor({ file, request, onFile, onPick, onClose, onShort
 						</div>
 					)}
 				</section>
-				<Panel session={session} busy={busy} onPick={onPick} />
+				<Panel session={session} busy={busy} onPick={onPick} batch={batch} />
 			</div>
 		</TooltipProvider>
 	);
@@ -157,7 +181,17 @@ function Opening({ name }: { name: string }) {
 	);
 }
 
-function Panel({ session, busy, onPick }: { session: EditorSession; busy: boolean; onPick: () => void }) {
+function Panel({
+	session,
+	busy,
+	onPick,
+	batch,
+}: {
+	session: EditorSession;
+	busy: boolean;
+	onPick: () => void;
+	batch: EditorBatch | undefined;
+}) {
 	const { t, i18n } = useTranslation();
 	const photo = useEditor((state) => state.photo);
 	const file = useEditor((state) => state.file);
@@ -177,6 +211,23 @@ function Panel({ session, busy, onPick }: { session: EditorSession; busy: boolea
 				'enter-up flex w-full shrink-0 flex-col gap-5 px-0.5 pb-2 md:w-[320px] md:overflow-y-auto md:overscroll-contain',
 			)}
 		>
+			{batch && (
+				<div className="-mb-2 flex items-center justify-between gap-3">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="-ml-2 gap-1 px-2"
+						onClick={batch.onBack}
+						data-testid="batch-back"
+					>
+						<ChevronLeft aria-hidden="true" />
+						{t('batch.back')}
+					</Button>
+					<span className="tabular text-[12px] text-fg-subtle" data-testid="batch-position">
+						{t('batch.position', { index: batch.index, count: batch.count })}
+					</span>
+				</div>
+			)}
 			<div className="flex items-start justify-between gap-3">
 				<div className="flex min-w-0 flex-col gap-0.5">
 					<h1 className="truncate text-[14px] font-medium text-fg" title={name}>
@@ -195,8 +246,14 @@ function Panel({ session, busy, onPick }: { session: EditorSession; busy: boolea
 							: ' '}
 					</span>
 				</div>
-				<Tooltip label={t('result.another')} keys={[COMMAND_KEY, 'O']}>
-					<Button variant="ghost" size="icon" aria-label={t('result.another')} onClick={onPick} disabled={exporting}>
+				<Tooltip label={batch ? t('batch.add') : t('result.another')} keys={[COMMAND_KEY, 'O']}>
+					<Button
+						variant="ghost"
+						size="icon"
+						aria-label={batch ? t('batch.add') : t('result.another')}
+						onClick={onPick}
+						disabled={exporting}
+					>
 						<ImagePlus />
 					</Button>
 				</Tooltip>
@@ -209,7 +266,7 @@ function Panel({ session, busy, onPick }: { session: EditorSession; busy: boolea
 			))}
 			<Presets disabled={busy || exporting} />
 			<Sliders disabled={busy || exporting} />
-			<ExportPanel session={session} disabled={busy || previewFailed} />
+			{batch ? batch.exportArea : <ExportPanel session={session} disabled={busy || previewFailed} />}
 		</aside>
 	);
 }
@@ -219,11 +276,13 @@ function OpenFailed({
 	retry,
 	onRetry,
 	onClose,
+	closeLabel,
 }: {
 	message: string;
 	retry: boolean;
 	onRetry: () => void;
 	onClose: () => void;
+	closeLabel: string;
 }) {
 	const { t } = useTranslation();
 	return (
@@ -235,7 +294,7 @@ function OpenFailed({
 				<div className="flex justify-end gap-2">
 					{/* Retrying only helps when the photo wasn't the problem. */}
 					<Button variant={retry ? 'secondary' : 'primary'} onClick={onClose}>
-						{t('result.another')}
+						{closeLabel}
 					</Button>
 					{retry && (
 						<Button variant="primary" onClick={onRetry}>

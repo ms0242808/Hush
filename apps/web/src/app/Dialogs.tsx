@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Kbd } from '@/components/ui/kbd';
 import { COMMAND_KEY } from '@/lib/keys';
 import { Modal } from '@/components/ui/modal';
+import { useBatch } from '@/batch/store';
 import { useEditor } from '@/editor/store';
 import type { Capabilities } from '@/lib/capabilities';
 import { modelOverride } from '@/lib/defaults';
@@ -64,8 +65,26 @@ function useModel(): { entry: ModelEntry | null; precision: string | null; bytes
 	return { entry, precision: null, bytes: null };
 }
 
+/** The batch on screen, counted (§4.7: no names). */
+function batchDiagnostics(): Diagnostics['batch'] {
+	const batch = useBatch.getState();
+	if (!batch.active) return undefined;
+	const count = (status: string) => batch.photos.filter((p) => p.status === status).length;
+	const saved = count('saved');
+	return {
+		photos: batch.photos.length,
+		megapixels: batch.photos.reduce((sum, p) => sum + (p.facts ? (p.facts.width * p.facts.height) / 1e6 : 0), 0),
+		destination: batch.destination?.kind ?? 'none',
+		saved,
+		failed: count('failed') + batch.photos.filter((p) => p.refused).length,
+		skipped: count('skipped'),
+		secondsPerPhoto: batch.run && batch.run.saved > 0 ? batch.run.activeMs / batch.run.saved / 1000 : null,
+	};
+}
+
 function collect(capabilities: Capabilities | null, language: string): Diagnostics {
 	const state = useEditor.getState();
+	const batch = batchDiagnostics();
 	const probe = capabilities?.probe ?? null;
 	const adapter = probe?.adapter
 		? [probe.adapter.vendor, probe.adapter.architecture, probe.adapter.description].filter(Boolean).join(' · ') ||
@@ -103,6 +122,7 @@ function collect(capabilities: Capabilities | null, language: string): Diagnosti
 					orientation: photo.orientation,
 				}
 			: null,
+		...(batch && { batch }),
 		timings: Object.entries(state.timings)
 			.filter(([label]) => label !== 'tile ceiling')
 			.map(([label, ms]) => ({ label, ms })),
@@ -239,6 +259,7 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
 	{ keys: ['Z'], label: 'shortcuts.zoom' },
 	{ keys: ['shortcuts.spaceKey', 'shortcuts.dragKey'], label: 'shortcuts.pan' },
 	{ keys: ['←', '↑', '→', '↓'], label: 'shortcuts.arrows' },
+	{ keys: ['←', '→'], label: 'shortcuts.step' },
 	{ keys: [COMMAND_KEY, 'O'], label: 'shortcuts.open' },
 	{ keys: [COMMAND_KEY, 'E'], label: 'shortcuts.export' },
 	{ keys: [COMMAND_KEY, 'Z'], label: 'shortcuts.reset' },
