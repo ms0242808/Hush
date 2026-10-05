@@ -310,7 +310,6 @@
 		"resumed_other": "Picking up where the last batch stopped: {{count}} photos were already exported.",
 		"photoLabel": "{{name}}: {{status}}",
 		"open": "Open {{name}} to see the settings on it",
-		"model": "Noise model: {{status}}",
 		"status": {
 			"queued": "Queued",
 			"decoding": "Opening",

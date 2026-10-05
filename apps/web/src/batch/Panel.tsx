@@ -52,6 +52,7 @@ export function Panel({
 	const count = useBatch((s) => s.photos.length);
 	const bytes = useBatch((s) => s.photos.reduce((sum, p) => sum + p.file.size, 0));
 	const source = useBatch((s) => s.source);
+	const resumed = useBatch((s) => s.resumed);
 	const locale = i18n.resolvedLanguage ?? 'en';
 
 	return (
@@ -93,6 +94,12 @@ export function Panel({
 					</Tooltip>
 				</div>
 			</div>
+			{resumed !== null && resumed > 0 && (
+				<p className="-mt-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-fg-subtle" data-testid="resumed">
+					<Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+					{t('batch.resumed', { count: resumed })}
+				</p>
+			)}
 			{source.ignored > 0 && (
 				<p className="-mt-3 flex items-start gap-1.5 text-[12px] leading-relaxed text-fg-subtle">
 					<Info aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />

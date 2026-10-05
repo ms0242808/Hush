@@ -67,8 +67,8 @@ export interface BatchState {
 	confirmLong: { estimateMs: number } | null;
 	/** A message about the batch as a whole, worded at render time: what happened, and what to do. */
 	notice: { key: string; values?: Record<string, unknown> } | null;
-	/** Photos whose result was saved earlier and found again on resume. */
-	resumedFrom: string | null;
+	/** Resumed after a reload: how many of its photos were already exported. */
+	resumed: number | null;
 }
 
 export function initialBatchState(): BatchState {
@@ -86,7 +86,7 @@ export function initialBatchState(): BatchState {
 		parts: [],
 		confirmLong: null,
 		notice: null,
-		resumedFrom: null,
+		resumed: null,
 	};
 }
 

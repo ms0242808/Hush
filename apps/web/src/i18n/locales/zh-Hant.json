@@ -299,7 +299,6 @@
 		"resumed_other": "接續上一個批次：已有 {{count}} 張相片匯出過。",
 		"photoLabel": "{{name}}：{{status}}",
 		"open": "開啟 {{name}} 以在相片上查看設定",
-		"model": "雜訊模型：{{status}}",
 		"status": {
 			"queued": "等待中",
 			"decoding": "開啟中",

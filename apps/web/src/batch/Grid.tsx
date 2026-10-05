@@ -139,7 +139,15 @@ function Cell({ id, session }: { id: string; session: BatchSession }) {
 				)}
 			</div>
 			<div className="flex min-w-0 flex-col gap-0.5 px-0.5">
-				<span className="truncate text-[12px] text-fg-muted" title={name}>
+				<span
+					className="truncate text-[12px] text-fg-muted"
+					// §5.13: where it went, by its actual name — "Saved IMG_2041-denoised.jpg to Wedding/denoised".
+					title={
+						photo.status === 'saved' && photo.output && photo.savedTo
+							? t('save.savedToFolder', { file: photo.output, folder: photo.savedTo })
+							: name
+					}
+				>
 					{name}
 				</span>
 				{reason ? (

@@ -831,7 +831,12 @@ export class BatchSession {
 				? { ...photo, output: item.output, status: 'skipped' as const, fraction: 1 }
 				: { ...photo, output: item.output };
 		});
-		useBatch.setState({ photos, resumedFrom: saved.source.name ?? null });
+		const matched = photos.filter((photo) => saved.items.some((item) => sameFile(item, photo.file)));
+		useBatch.setState({
+			photos,
+			resumed: photos.filter((photo) => photo.status === 'skipped').length,
+			notice: matched.length === 0 ? { key: 'resume.noMatch' } : null,
+		});
 		if (saved.destination.kind === 'zip') this.zip = this.zipParts(saved.destination.nextPart);
 	}
 

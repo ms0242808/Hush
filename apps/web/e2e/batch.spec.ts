@@ -645,6 +645,9 @@ test.describe('ZIP files in parts (§2.8: Safari, Firefox)', () => {
 		await expect(page.getByTestId('batch-photo').and(page.locator('[data-status="skipped"]'))).toHaveCount(
 			first.length,
 		);
+		await expect(page.getByTestId('resumed')).toHaveText(
+			`Picking up where the last batch stopped: ${first.length} photo was already exported.`,
+		);
 		await readyToExport(page);
 		await expect(page.getByTestId('batch-export')).toContainText(`Export ${3 - first.length} photo`);
 		await page.getByTestId('batch-export').click();
