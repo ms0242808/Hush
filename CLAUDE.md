@@ -28,7 +28,7 @@ npx vitest run --project core packages/core/test/preview.test.ts -t "pauses"   #
 cd apps/web && pnpm exec vite build --mode e2e --outDir dist-e2e               # once, then after app changes
 cd apps/web && npx playwright test e2e/editor.spec.ts -g "presets"
 cd apps/web && HUSH_PHOTO=/path/photo.jpg npx playwright test -c playwright.real.config.ts e2e/real/editor.spec.ts   # needs dist-real: HUSH_MODELS=release vite build --mode e2e --outDir dist-real
-cd apps/web && HUSH_BATCH_COUNT=100 npx playwright test -c playwright.real.config.ts e2e/real/batch.spec.ts -g "Phase 3"   # the batch acceptance: ~2.5 h on an M1 Pro; don't rebuild dist-real while it runs
+cd apps/web && HUSH_BATCH_COUNT=100 npx playwright test -c playwright.real.config.ts e2e/real/batch.spec.ts -g "Phase 3"   # the batch acceptance: ~2 h 40 min on an M1 Pro; don't rebuild dist-real while it runs
 cd apps/web && HUSH_PHOTOS=/a.jpg,/b.jpg npx playwright test -c playwright.real.config.ts e2e/real/batch.spec.ts -g "real photos"   # a batch of your photos; exports land in test-results
 ```
 

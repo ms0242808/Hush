@@ -8,15 +8,17 @@ The Phase 3 criterion in [`implementation.md`](implementation.md):
 
 > 100 × 45 MP JPEGs complete in Chrome with flat memory, saved to a folder. Kill the tab halfway, reopen, grant permission — the batch resumes and skips what's done.
 
-| Part                                              | Result                                                                                                                                                                                                    |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **100 × 45 MP JPEGs complete in Chrome**          | ⏳ Running when this was written: 68 of 100 exported at 95 s per photo. Updated when it finishes.                                                                                                         |
-| **With flat memory**                              | ⏳ Sampled through the whole run; reported when it finishes.                                                                                                                                              |
-| **Saved to a folder**                             | ⏳ Checked when the run finishes: every output in `denoised/` inside the chosen folder.                                                                                                                   |
-| **Kill the tab halfway, reopen**                  | ✅ After 50 of 100 were saved (79.4 min), the test SIGKILLed Chrome's whole process tree, then launched Chrome again on the same profile.                                                                 |
-| **Grant permission — resumes, skips what's done** | ✅ The drop zone offered **Continue**; one permission for the folder; the batch went on from photo 51 and kept going (68 of 100 when this was written). The final skip count is checked when it finishes. |
+| Part                                              | Result                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **100 × 45 MP JPEGs complete in Chrome**          | ✅ All 100 exported, none failed: 50 in 79.4 min, then 50 in 78.9 min after reopening — **95 s per photo**, 2 h 38 min of processing against "about 2 h 40 min" on the button beforehand.                                                                                       |
+| **With flat memory**                              | ✅ Chrome's whole process tree (RSS, 475 samples): median 0.86–0.94 GB per ten photos before the kill and 1.13–1.19 GB after reopening, with no growth from photo to photo; each photo's decode–model–encode peaks at 1.6–2.5 GB and falls back. Largest single process 1.7 GB. |
+| **Saved to a folder**                             | ✅ 100 files in `Shoot/denoised`, named `DSC_0001-denoised.jpg` onwards; the last one's EXIF matches the original apart from `Software`. No request left the origin.                                                                                                            |
+| **Kill the tab halfway, reopen**                  | ✅ After 50 of 100 were saved, the test SIGKILLed Chrome's whole process tree (no unload, no clean shutdown), then launched Chrome again on the same profile.                                                                                                                   |
+| **Grant permission — resumes, skips what's done** | ✅ The drop zone said "50 of 100 photos from Shoot are exported."; **Continue** and one folder permission resumed it; the summary: "50 photos exported to Shoot/denoised · 50 were already exported".                                                                           |
 
 Measured with `HUSH_BATCH_COUNT=100 pnpm --filter @hush/web e2e:real` (`apps/web/e2e/real/batch.spec.ts`) on the synthetic 45.4 MP camera JPEG from Phase 2, copied 100 times into a folder. The folder is Chrome's private file system standing in for one the photographer picks (Playwright can't click a native folder picker); it lives in a Chrome profile on disk, as a real browser's would.
+
+The 100-photo run used a build from before the last commit (`34c8c51`: a "Saved … to …" title on saved photos and the note on a resumed batch — interface copy, no pipeline change). The final build then passed the whole `e2e:real` suite again: 12 passed in 24.5 min — the kill-and-resume batch at 6 photos (3 saved, Chrome killed, 3 exported and 3 skipped after reopening, 97 s per photo), the photographer's photos below, and Phases 1–2's checks (45 MP at 0.50 MP/s, a real device loss recovered at 45.2 dB, 102 MP with 118 MiB of float memory, the editor's 45 MP preview with its first denoised tile at 1.8 s).
 
 Every requirement Phase 3 lists — queue, folder input, thumbnails, shared settings, progress and multi-hour ETA, pause/cancel/retry, wake lock, unload warning, save-to-folder with skip-existing, resume-after-reload, ZIP in parts — is built and tested; see below.
 
@@ -72,13 +74,14 @@ Made during the phase, each with its reason. None changes the spec's intent.
 
 From `pnpm --filter @hush/web e2e:real` (`apps/web/e2e/real/batch.spec.ts`), WebGPU, fp16.
 
-| Check                                   | Result                                                                              |
-| --------------------------------------- | ----------------------------------------------------------------------------------- |
-| Estimate on the button, before starting | "Export 100 photos (about 2 h 40 min)" — 164.8 min                                  |
-| First half                              | 50 photos in 79.4 min, **95.0 s per photo**; the time left on screen then: 79.7 min |
-| Second half, memory                     | ⏳ when the run finishes                                                            |
+| Check                                   | Result                                                                                                                                                                                      |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Estimate on the button, before starting | "Export 100 photos (about 2 h 40 min)" — 164.8 min                                                                                                                                          |
+| First half                              | 50 photos in 79.4 min, **95.0 s per photo**; the time left on screen then: 79.7 min                                                                                                         |
+| Second half                             | 50 exported and 50 skipped in 78.9 min after reopening (94.7 s per photo)                                                                                                                   |
+| Memory, Chrome process tree (RSS)       | 475 samples; overall 668–2541 MB; median per ten photos 863–944 MB before the kill, 1131–1185 MB after reopening (1471 MB in the first ten after reopening); largest single process 1686 MB |
 
-**The photographer's photos** (`HUSH_PHOTOS`): two 6960 × 4640 (32.3 MP) JPEGs of a lake at dusk, ISO 32000, as one batch: **134 s for both** (about 67 s each), estimated at "about 2 min" beforehand; 9.3 and 9.4 MB out; all 38 EXIF tags identical apart from `Software`. At 100% the colour blotches and luminance grain in the sky and the trees are gone and the town's lights keep their edges; the darkest sky keeps some fine grain at ISO 32000, which is NAFNet-SIDD's limit rather than the batch's (the batch's exports are the editor's exports, pixel for pixel).
+**The photographer's photos** (`HUSH_PHOTOS`): two 6960 × 4640 (32.3 MP) JPEGs of a lake at dusk, ISO 32000, as one batch: **137 s for both** (about 68 s each; 134 s on an earlier run), estimated at "about 2 min" beforehand; 9.3 and 9.4 MB out; all 38 EXIF tags identical apart from `Software`. At 100% the colour blotches and luminance grain in the sky and the trees are gone and the town's lights keep their edges; the darkest sky keeps some fine grain at ISO 32000, which is NAFNet-SIDD's limit rather than the batch's (the batch's exports are the editor's exports, pixel for pixel).
 
 **Against §4.6.** A batch runs at the export's speed: 95 s (0.48 MP/s) per 45 MP photo here, in line with Phase 2's single exports (91–98 s). That is below the strong-machine line (≥ 2.4 MP/s, 45 MP ≤ 19 s), so [Phase 0's speed question](phase-0-results.md#what-to-decide) matters most now: at this speed a 400 × 45 MP wedding is about 10½ hours on an M1 Pro, which Hush says honestly up front; at the strong-machine target it would be about 2 hours.
 
@@ -106,6 +109,6 @@ As before, every test runs with the CSP enforced and fails on any request to ano
 ```sh
 pnpm install && pnpm test && pnpm e2e                                   # what CI runs
 pnpm fetch-models --from tools/models/out                               # the release model
-HUSH_BATCH_COUNT=100 pnpm --filter @hush/web e2e:real                   # the acceptance run (~2.5 h), plus Phases 1–2's checks
+HUSH_BATCH_COUNT=100 pnpm --filter @hush/web e2e:real                   # the acceptance run (~2 h 40 min), plus Phases 1–2's checks
 HUSH_PHOTOS=/path/a.jpg,/path/b.jpg pnpm --filter @hush/web e2e:real    # a batch of your photos; exports in test-results/
 ```

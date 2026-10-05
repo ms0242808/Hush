@@ -17,7 +17,7 @@ no account, no upload — and anyone can host it as a folder of static files.
 > **[Phase 2](docs/phase-2-results.md)** (the editor),
 > **[Phase 1](docs/phase-1-results.md)** (the pipeline) and
 > **[Phase 0](docs/phase-0-results.md)** (speed is still an open decision there:
-> a 45 MP photo takes about 93 s on an M1 Pro, so 100 of them take 2½ hours).
+> a 45 MP photo takes about 95 s on an M1 Pro, so 100 of them take 2 h 40 min).
 >
 > Preview (deployed by hand, so it can lag behind `main`):
 > **<https://hush.ms0242808.workers.dev>** · benchmark this computer, or run a
