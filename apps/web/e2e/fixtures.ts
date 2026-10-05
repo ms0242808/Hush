@@ -51,7 +51,7 @@ export const test = base.extend<{ watch: Watch }>({
 export { expect };
 
 /** Choose a photo through the drop zone's button (or, in the editor, ⌘/Ctrl+O). */
-export async function choosePhoto(page: Page, name: string, button = 'Choose photo') {
+export async function choosePhoto(page: Page, name: string, button = 'Choose photos') {
 	const chooser = page.waitForEvent('filechooser');
 	await page.getByRole('button', { name: button }).click();
 	await (await chooser).setFiles(fixture(name));

@@ -49,7 +49,7 @@ function note(name: string, value: string) {
 async function choose(page: Page, file: string) {
 	const chooser = page.waitForEvent('filechooser');
 	await page
-		.getByRole('button', { name: /^(Choose photo|Open another photo)$/ })
+		.getByRole('button', { name: /^(Choose photos|Open another photo)$/ })
 		.first()
 		.click();
 	await (await chooser).setFiles(file);
@@ -158,7 +158,7 @@ test('Phase 2 acceptance: a 45 MP JPEG, before/after at 100% within the preview 
 	await openAndTime(page, LARGE);
 	// Then as a photographer comes back: model cached, a fresh page.
 	await page.reload();
-	await page.getByRole('button', { name: 'Choose photo' }).waitFor();
+	await page.getByRole('button', { name: 'Choose photos' }).waitFor();
 	await page.waitForTimeout(1500); // the editor's code warms while the page is idle, as on a real visit
 	const timeline = await openAndTime(page, LARGE);
 	const state = await page.evaluate(() => {

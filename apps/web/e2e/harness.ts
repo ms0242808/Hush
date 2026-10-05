@@ -67,11 +67,28 @@ export interface EditorHarness {
 	setState(patch: Record<string, unknown>): void;
 }
 
+/** The batch store's surface the tests read and nudge (src/batch/store.ts). */
+export interface BatchHarness {
+	getState(): {
+		photos: { id: string; status: string; fraction: number; file: File; output: string | null }[];
+		state: string;
+		estimateMs: number | null;
+		[key: string]: unknown;
+	};
+	setState(patch: Record<string, unknown>): void;
+	subscribe?(listener: (state: never) => void): () => void;
+}
+
 declare global {
 	interface Window {
 		__hushPipeline?: PipelineHarness;
 		__hushBench?: BenchHandle;
 		__hushViewer?: ViewerHarness;
 		__hushEditor?: EditorHarness;
+		__hushBatch?: BatchHarness;
+		/** Make the model slow or fail (src/batch/session.ts). */
+		__hushBatchFaults?: (plan: { delayMs?: number; loseDeviceOnRun?: number }) => Promise<void>;
+		/** The ZIP part size (src/batch/session.ts). */
+		__hushZipPartBytes?: number;
 	}
 }
