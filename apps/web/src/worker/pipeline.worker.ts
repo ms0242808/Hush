@@ -10,10 +10,12 @@ import {
 	CancelledError,
 	chooseTileSize,
 	chooseVariant,
+	crc32,
 	DEFAULT_OUTPUT,
 	describeSource,
 	deviceClass,
 	encodePhoto,
+	extractTile,
 	inferenceFailure,
 	loadManifest,
 	MAX_MEGAPIXELS,
@@ -21,6 +23,7 @@ import {
 	minTileSize,
 	msPerPixel,
 	PhotoTooLargeError,
+	planTiles,
 	prepareModel,
 	PreviewGrid,
 	PreviewScheduler,
@@ -32,6 +35,7 @@ import {
 	type ColourSource,
 	type DecodedOrientation,
 	type Image8,
+	type InferenceSession,
 	type MetadataWarning,
 	type ModelEntry,
 	type ModelRequest,
@@ -223,6 +227,31 @@ export interface EditedExport extends ExportResult {
 	peakFloatBytes: number;
 }
 
+/** What a batch photo is doing, for its thumbnail and the batch's progress (§2.7). */
+export type BatchPhotoProgress =
+	| { stage: 'decoding' }
+	| { stage: 'processing'; tilesDone: number; tileCount: number; bandsDone: number; bandCount: number }
+	| { stage: 'encoding' };
+
+/** One photo of a batch, processed and encoded, ready to save. */
+export interface BatchPhotoResult {
+	bytes: Uint8Array;
+	/** The name the encoder chose; a batch saves under the name it planned (planOutputNames). */
+	name: string;
+	mimeType: string;
+	/** CRC-32 of the file, for a ZIP part's headers; null when not asked for. */
+	crc32: number | null;
+	width: number;
+	height: number;
+	warnings: MetadataWarning[];
+	decodeMs: number;
+	processMs: number;
+	encodeMs: number;
+	totalMs: number;
+	peakFloatBytes: number;
+	stats: TiledStats | null;
+}
+
 interface Prepared {
 	backend: Backend;
 	model: ModelEntry;
@@ -251,6 +280,8 @@ let rememberedTile: number | null = null;
 let source: Source | null = null;
 let result: Image8 | null = null;
 let cancel = { aborted: false };
+/** A paused batch (§2.7): the next tile waits here until it's released or the run is cancelled. */
+let hold: { promise: Promise<void>; release: () => void } | null = null;
 
 /** Preview tiles: about half a second each on a laptop GPU, a few seconds on the processor (§4.6, §2.10). */
 const PREVIEW_TILE = 512;
@@ -421,15 +452,39 @@ function currentTileSize(ready: Prepared): number {
 	});
 }
 
-function denoiseOperation(ready: Prepared, tileSize?: number) {
+function denoiseOperation(ready: Prepared, tileSize?: number, session: InferenceSession = ready.session) {
 	return createDenoiseOperation({
 		model: ready.model,
-		session: ready.session,
+		session,
 		tileSize: () => tileSize ?? currentTileSize(ready),
 		onBackoff: (size) => {
 			rememberedTile = Math.min(rememberedTile ?? Infinity, size);
 		},
 	});
+}
+
+/**
+ * The session as a batch uses it: each tile first waits while the batch is
+ * paused, so a pause takes hold within one tile and the photo carries on
+ * where it stopped. A cancel lets it go and stops it before the next tile.
+ */
+function heldSession(session: InferenceSession, signal: { aborted: boolean }): InferenceSession {
+	return {
+		backend: session.backend,
+		...(session.maxBufferBytes !== undefined && { maxBufferBytes: session.maxBufferBytes }),
+		async run(input, width, height) {
+			while (hold && !signal.aborted) await hold.promise;
+			if (signal.aborted) throw new CancelledError();
+			return session.run(input, width, height);
+		},
+		...(session.recover && { recover: () => session.recover!() }),
+		dispose: () => session.dispose(),
+	};
+}
+
+function releaseHold(): void {
+	hold?.release();
+	hold = null;
 }
 
 /** Read a file's container, refusing what Hush can't process before decoding a pixel. */
@@ -732,6 +787,124 @@ const api = {
 		}
 	},
 
+	// ── Batches (Phase 3) ───────────────────────────────────────────────────
+
+	/**
+	 * One photo of a batch (§2.7): decode it in a worker of its own (so the
+	 * decoder's memory goes with it), run the recipe over the pixels in place,
+	 * encode with the original's metadata, and hand back the file. Nothing is
+	 * kept afterwards: a hundred photos leave memory where the first one did.
+	 */
+	async batchProcess(
+		file: File,
+		recipe: Recipe,
+		settings: Partial<OutputSettings> = {},
+		options: { crc32?: boolean } = {},
+		onProgress?: (progress: BatchPhotoProgress) => void,
+	): Promise<BatchPhotoResult> {
+		if (!prepared) throw named('StateError', 'No model is ready');
+		if (exporting) throw named('StateError', 'An export is already running');
+		const ready = prepared;
+		closeEditing();
+		source = null;
+		result = null;
+		cancel = { aborted: false };
+		const signal = cancel;
+		exporting = true;
+		try {
+			const started = now();
+			onProgress?.({ stage: 'decoding' });
+			const decoded = await decodeElsewhere(file, null);
+			if (signal.aborted) throw new CancelledError();
+			const decodeMs = now() - started;
+			// The tiler reports after each tile; say "processing" now, while the first one runs.
+			const plan = planTiles(decoded.image.width, decoded.image.height, {
+				tileSize: currentTileSize(ready),
+				overlap: ready.model.tile.overlap,
+				padMultiple: ready.model.tile.padMultiple,
+			});
+			onProgress?.({
+				stage: 'processing',
+				tilesDone: 0,
+				tileCount: plan.tileCount,
+				bandsDone: 0,
+				bandCount: plan.y.starts.length,
+			});
+			let t = now();
+			const processed = await runRecipe(decoded.image, recipe, {
+				operations: { denoise: denoiseOperation(ready, undefined, heldSession(ready.session, signal)) },
+				signal,
+				now,
+				onProgress: (tiles) => onProgress?.({ stage: 'processing', ...tiles }),
+			});
+			if (signal.aborted) throw new CancelledError();
+			const processMs = now() - t;
+			onProgress?.({ stage: 'encoding' });
+			t = now();
+			const exported = await encodePhoto(
+				decoded.image,
+				decoded.info,
+				decoded.orientation,
+				{ name: file.name, output: { ...DEFAULT_OUTPUT, ...settings } },
+				{ codecs: browserCodecs, zlib: browserZlib, software: SOFTWARE, now },
+			);
+			if (signal.aborted) throw new CancelledError();
+			return Comlink.transfer(
+				{
+					bytes: exported.bytes,
+					name: exported.name,
+					mimeType: exported.mimeType,
+					crc32: options.crc32 ? crc32(exported.bytes) : null,
+					width: decoded.image.width,
+					height: decoded.image.height,
+					warnings: exported.warnings,
+					decodeMs,
+					processMs,
+					encodeMs: now() - t,
+					totalMs: now() - started,
+					peakFloatBytes: (processed.tiled?.peakFloatBytes ?? 0) + processed.floatBytes,
+					stats: processed.tiled,
+				},
+				[exported.bytes.buffer],
+			);
+		} finally {
+			exporting = false;
+		}
+	},
+
+	/** Pause the batch photo in progress at its next tile (§2.7). */
+	holdTiles(): void {
+		if (hold) return;
+		let release!: () => void;
+		const promise = new Promise<void>((resolve) => (release = resolve));
+		hold = { promise, release };
+	},
+
+	/** Let a paused batch photo carry on. */
+	releaseTiles(): void {
+		releaseHold();
+	},
+
+	/**
+	 * Time the model on this machine (§2.10: "time a single tile and
+	 * extrapolate"), for a batch's estimate before any photo has run: one tile
+	 * to warm up, then timed ones. Milliseconds per pixel the model sees.
+	 */
+	async measureSpeed(tiles = 2): Promise<{ msPerModelPixel: number; tileSize: number }> {
+		if (!prepared) throw named('StateError', 'No model is ready');
+		const ready = prepared;
+		const size = previewTileSize(ready);
+		const input = new Float32Array(3 * size * size);
+		extractTile(syntheticPhoto(size, size, 7), 0, 0, size, size, input);
+		const samples: { ms: number; pixels: number }[] = [];
+		for (let i = 0; i < Math.max(2, tiles); i++) {
+			const t = now();
+			await ready.session.run(input, size, size);
+			samples.push({ ms: now() - t, pixels: size * size });
+		}
+		return { msPerModelPixel: msPerPixel(samples)!, tileSize: size };
+	},
+
 	/** Denoise the open photo into a separate result, keeping the original for the comparison. */
 	async run(request: RunRequest = {}, onProgress?: (progress: TiledProgress) => void): Promise<RunResult> {
 		if (!prepared) throw named('StateError', 'No model is ready');
@@ -768,6 +941,7 @@ const api = {
 
 	cancel(): void {
 		cancel.aborted = true;
+		releaseHold();
 	},
 
 	/** The same region of the original and the result, for a 1:1 preview, and how to turn it upright. */
