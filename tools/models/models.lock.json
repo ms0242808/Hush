@@ -39,8 +39,8 @@
 				{
 					"precision": "fp16",
 					"file": "nafnet-sidd-w32.fp16.onnx",
-					"bytes": 59264286,
-					"sha256": "d2bd3cabffe1911702053d2784c1303a8e56f388782a9f56d9817fc278d641d8",
+					"bytes": 59371902,
+					"sha256": "b98d15ca25ef7b43fffe9661a0603e6841c2734d8811c0d602ca6ce39eafc8ac",
 					"backends": [
 						"webgpu"
 					]
@@ -48,8 +48,8 @@
 				{
 					"precision": "fp32",
 					"file": "nafnet-sidd-w32.fp32.onnx",
-					"bytes": 117034520,
-					"sha256": "961ae1a7c36c2b6d99beb184329a5f35064b7550654ca42cd62efae63ab5d091",
+					"bytes": 117134184,
+					"sha256": "42d52d597b2792cf67898885db4721f4dd9cb00ffd927803d43230154f5fa870",
 					"backends": [
 						"webgpu",
 						"wasm"
@@ -87,8 +87,8 @@
 				{
 					"precision": "fp16",
 					"file": "nafnet-sidd-w64.fp16.onnx",
-					"bytes": 232990079,
-					"sha256": "ec879fce5b36f52ec0d811ee8567bf5d5fbe42b130b2a38debcd6ee197fc39c6",
+					"bytes": 233137191,
+					"sha256": "158eea5bb577a9a10f8d34d68d0f0f81f94290fc6041aed74a068b600aaa77cd",
 					"backends": [
 						"webgpu"
 					]
@@ -96,8 +96,8 @@
 				{
 					"precision": "fp32",
 					"file": "nafnet-sidd-w64.fp32.onnx",
-					"bytes": 464327589,
-					"sha256": "21c1566427f4896216fabf367cb6eef98850eab6e9b0c7b17bd6a817c3bf5da4",
+					"bytes": 464506109,
+					"sha256": "f4717b384ba8e3f24f8ba23a420e259531cd779ee98a1b68203fe370c0d4dc54",
 					"backends": [
 						"webgpu",
 						"wasm"

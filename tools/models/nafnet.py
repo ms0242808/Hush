@@ -13,10 +13,13 @@ Differences from the training code, all deliberate for inference export:
   * The model does not pad its input. Hush's tiler guarantees tiles whose sides
     are multiples of `PAD_MULTIPLE`, so padding and cropping inside the graph
     would only add work.
+  * Each block's channel attention can be bounded (`bound_attention`). Unbounded
+    by default, which is the network as published.
 """
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 
 import torch
@@ -96,9 +99,16 @@ class NAFBlock(nn.Module):
 		self.beta = nn.Parameter(torch.zeros((1, c, 1, 1)))
 		self.gamma = nn.Parameter(torch.zeros((1, c, 1, 1)))
 
+		# Per-channel limits on the attention, (1, dw // 2, 1, 1) each; not in the checkpoints.
+		self.register_buffer('attention_min', None, persistent=False)
+		self.register_buffer('attention_max', None, persistent=False)
+
 	def forward(self, inp: torch.Tensor) -> torch.Tensor:
 		x = self.sg(self.conv2(self.conv1(self.norm1(inp))))
-		x = self.conv3(x * self.sca(x))
+		attention = self.sca(x)
+		if self.attention_min is not None:
+			attention = torch.minimum(torch.maximum(attention, self.attention_min), self.attention_max)
+		x = self.conv3(x * attention)
 		y = inp + x * self.beta
 
 		x = self.conv5(self.sg2(self.conv4(self.norm2(y))))
@@ -146,6 +156,32 @@ class NAFNet(nn.Module):
 			x = decoder(up(x) + skip)
 
 		return self.ending(x) + inp
+
+
+def blocks(model: NAFNet) -> Iterator[tuple[str, NAFBlock]]:
+	"""Every block with its module path (`encoders.3.2`, `middle_blks.0`, ...), in forward order."""
+	for name, module in model.named_modules():
+		if isinstance(module, NAFBlock):
+			yield name, module
+
+
+def bound_attention(model: NAFNet, bounds: dict[str, tuple[list[float], list[float]]], margin: float) -> None:
+	"""Clamp every block's channel attention to [min, max] per channel, widened by `margin` × (max − min).
+
+	NAFNet's attention scales each channel by a weight from the whole tile's mean,
+	and nothing bounds it. On content its training never showed (a high-ISO
+	shadow with JPEG blocking), the weights feed on themselves block after block
+	and the decoder renders the result as 2-pixel stripes. `bounds` is the range
+	each weight spans on SIDD (calibrate.py), so on SIDD-like input the clamp never
+	engages and the output is unchanged.
+	"""
+	for name, block in blocks(model):
+		low, high = (torch.tensor(v, dtype=torch.float32).view(1, -1, 1, 1) for v in bounds[name])
+		if low.shape[1] != block.sca[1].out_channels:
+			raise ValueError(f'{name}: {low.shape[1]} attention bounds for {block.sca[1].out_channels} channels')
+		slack = margin * (high - low)
+		block.attention_min = low - slack
+		block.attention_max = high + slack
 
 
 def load_nafnet(model_id: str, checkpoint_path: str) -> NAFNet:

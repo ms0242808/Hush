@@ -26,6 +26,13 @@ belongs to the NAFNet authors.
 All files take `input`, float32 NCHW RGB in [0, 1] with height and width that
 are multiples of 16, and return `output` with the same shape and range.
 
+One addition to the published network, in every file: each block's channel
+attention is clamped, per channel, to the range it spans on the 1,280 SIDD
+validation crops, widened by a quarter of that range. Unbounded, the attention
+runs away on dark high-ISO JPEG shadows (JPEG blocking is something SIDD never
+shows), and the output turns into 2-pixel stripes. On SIDD the clamp never
+engages, so the scores below are the published network's.
+
 - **fp32**: a direct export (opset 17, TorchScript exporter). Matches PyTorch to
   within 3 × 10⁻⁷ (width 32) and 2 × 10⁻⁶ (width 64); the width-64 export
   reproduces NAFNet's published `demo/denoise_img.png` to within one level.

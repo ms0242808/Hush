@@ -62,6 +62,18 @@ async function compareWithGolden(page: Page, outputBase64: string, referenceName
 	return { psnr, worst };
 }
 
+/** Mean step between horizontal neighbours over RGB: a denoiser's output is smoother than its input. */
+function roughness(rgba: Buffer, width: number): number {
+	let sum = 0;
+	let count = 0;
+	for (let i = 4; i < rgba.length; i += 4) {
+		if ((i / 4) % width === 0) continue;
+		for (let c = 0; c < 3; c++) sum += Math.abs(rgba[i + c]! - rgba[i - 4 + c]!);
+		count += 3;
+	}
+	return sum / count;
+}
+
 async function processGolden(page: Page) {
 	return (await page.evaluate(([name, data]) => window.__hushPipeline!.process(name, data), [
 		'noisy-1024x768.png',
@@ -88,6 +100,28 @@ test.describe('NAFNet, through the whole pipeline', () => {
 			note('against the same tiling', `${tiled.psnr.toFixed(1)} dB, at most ${tiled.worst} levels apart`);
 			expect(tiled.psnr).toBeGreaterThan(55);
 			expect(tiled.worst).toBeLessThanOrEqual(3);
+		});
+	}
+
+	for (const backend of ['webgpu', 'wasm'] as const) {
+		test(`a dark JPEG shadow on ${backend}: denoised, not run away into stripes`, async ({ page }) => {
+			// SIDD has no JPEG blocking; on a high-ISO shadow that has it, NAFNet's channel attention
+			// runs away unless the export bounds it (tools/models/calibrate.py), and the output is
+			// many times rougher than the input: 2-pixel stripes.
+			await open(page, backend);
+			const input = base64Of('dark-shadow.jpg');
+			const result = (await page.evaluate(([name, data]) => window.__hushPipeline!.process(name, data), [
+				'dark-shadow.jpg',
+				input,
+			] as const)) as Processed;
+			const [before, after] = await Promise.all(
+				[input, result.bytes].map((data) => page.evaluate((bytes) => window.__hushPipeline!.decode(bytes), data)),
+			);
+			const ratio =
+				roughness(Buffer.from(after!.data, 'base64'), after!.width) /
+				roughness(Buffer.from(before!.data, 'base64'), before!.width);
+			note('roughness', `${ratio.toFixed(2)} × the input's`);
+			expect(ratio).toBeLessThan(1);
 		});
 	}
 

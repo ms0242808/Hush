@@ -2,6 +2,7 @@
 """Build the photos Hush's end-to-end tests open, with encoders independent of Hush.
 
     cd tools/fixtures && uv sync && uv run make_fixtures.py
+    uv run make_fixtures.py dark-shadow.jpg     # just the named files
 
 Pillow writes JPEG, PNG, WebP and AVIF; pillow-heif (libheif + x265) writes
 HEIC. Metadata is what cameras and phones write: EXIF with GPS and a maker
@@ -23,6 +24,7 @@ from __future__ import annotations
 import io
 import pathlib
 import struct
+import sys
 
 import numpy as np
 import pillow_heif
@@ -176,7 +178,27 @@ def insert_before_tables(jpeg: bytes, *segments: bytes) -> bytes:
 	return jpeg[:at] + b''.join(segments) + jpeg[at:]
 
 
+def dark_shadow(seed: int = 1, size: int = 512) -> bytes:
+	"""A high-ISO shadow as a camera's JPEG stores it: near-black with noise, quality 75, 4:2:0.
+
+	NAFNet's SIDD weights never saw JPEG blocking (SIDD is lossless), and on this
+	their channel attention runs away into 2-pixel stripes unless the export
+	bounds it (tools/models/calibrate.py). The model's own regression input.
+	"""
+	rng = np.random.default_rng(seed)
+	rgb = np.array([13.3, 13.5, 14.4]) + rng.normal(0, 7, (size, size, 3))
+	buffer = io.BytesIO()
+	Image.fromarray(np.clip(rgb, 0, 255).round().astype(np.uint8), 'RGB').save(buffer, 'JPEG', quality=75, subsampling=2)
+	return buffer.getvalue()
+
+
+#: Names given on the command line: write only those (the others' encoders may have moved on).
+ONLY = set(sys.argv[1:])
+
+
 def save(name: str, data: bytes) -> None:
+	if ONLY and name not in ONLY:
+		return
 	(OUT / name).write_bytes(data)
 	print(f'{name}: {len(data):,} bytes')
 
@@ -231,6 +253,8 @@ def main() -> None:
 	buffer = io.BytesIO()
 	Image.fromarray(grey).save(buffer, 'PNG')  # uint16 → a 16-bit greyscale PNG
 	save('deep-16bit.png', buffer.getvalue())
+
+	save('dark-shadow.jpg', dark_shadow())
 
 
 if __name__ == '__main__':
