@@ -17,7 +17,11 @@ turn it back, and carries what cameras and phones write: EXIF with GPS and a
 maker note, a Display P3 profile (written from the ICC specification and checked
 by LittleCMS), XMP with location and a non-ASCII title, IPTC, a comment, print
 resolution. The `refuse-*` photos are ones Hush must decline with a reason:
-CMYK and animated.
+CMYK and animated. `dark-shadow.jpg` is something else: a near-black, noisy
+512 × 512 JPEG (quality 75, 4:2:0), on which NAFNet runs away into stripes unless
+its attention is bounded (`tools/models/README.md`).
+
+`uv run make_fixtures.py dark-shadow.jpg` writes only the files named.
 
 The files are committed, not rebuilt in CI: encoders change between versions,
 and the tests compare against the exact bytes.

@@ -3,9 +3,11 @@
 
     uv run export.py nafnet-sidd-w32 nafnet-sidd-w64
 
-Writes `out/<model>.fp32.onnx` and `out/<model>.fp16.onnx`, then prints a JSON
-summary (bytes, sha256, error versus PyTorch) for the results write-up and the
-model lock file.
+Every block's channel attention is bounded to the range it spans on SIDD
+(`attention-bounds/`, from calibrate.py): unbounded, it runs away into stripes
+on dark JPEG shadows. Writes `out/<model>.fp32.onnx` and `out/<model>.fp16.onnx`,
+then prints a JSON summary (bytes, sha256, error versus PyTorch, the audits) for
+the results write-up and the model lock file.
 """
 
 from __future__ import annotations
@@ -20,11 +22,20 @@ import onnx
 import onnxruntime as ort
 import torch
 from onnxconverter_common import float16
+from PIL import Image
 
+from calibrate import load_bounds
 from checkpoints import ensure_checkpoint, sha256_file
-from nafnet import CONFIGS, PAD_MULTIPLE, load_nafnet
+from nafnet import CONFIGS, PAD_MULTIPLE, bound_attention, load_nafnet
 
 OUT_DIR = pathlib.Path(__file__).parent / 'out'
+#: A high-ISO shadow with JPEG blocking (tools/fixtures/make_fixtures.py), where unbounded attention runs away.
+SHADOW = pathlib.Path(__file__).resolve().parents[2] / 'apps' / 'web' / 'e2e' / 'fixtures' / 'dark-shadow.jpg'
+#: How far past its SIDD range each attention weight may go, as a share of that range. Measured on
+#: two ISO 32,000 photos: 0.25–0.5 hold every tile that ran away; 2 lets one run away again.
+ATTENTION_MARGIN = 0.25
+#: The tiler's reflection margin, so the audit sees the shadow as a tile sees it.
+TILE_MARGIN = 48
 OPSET = 17
 DYNAMIC_AXES = {'input': {2: 'height', 3: 'width'}, 'output': {2: 'height', 3: 'width'}}
 
@@ -109,6 +120,28 @@ def audit_fp16_ranges(fp32_path: pathlib.Path, fp16_path: pathlib.Path) -> dict[
 	return {'largestFp16Magnitude': round(worst, 1), 'largestFp16Node': worst_name}
 
 
+def shadow_tile() -> np.ndarray:
+	image = np.asarray(Image.open(SHADOW).convert('RGB')).astype(np.float32) / 255.0
+	padded = np.pad(image, ((TILE_MARGIN, TILE_MARGIN), (TILE_MARGIN, TILE_MARGIN), (0, 0)), mode='reflect')
+	return padded.transpose(2, 0, 1)[None].copy()
+
+
+def roughness(output: np.ndarray, tile: np.ndarray) -> float:
+	"""Mean step between horizontal neighbours, output over input: a denoiser's is below 1."""
+	return float(np.mean(np.abs(np.diff(output, axis=-1)))) / float(np.mean(np.abs(np.diff(tile, axis=-1))))
+
+
+def audit_shadow(onnx_path: pathlib.Path) -> dict[str, float]:
+	"""Fail if the export makes the dark JPEG shadow rougher, not smoother (stripes)."""
+	tile = shadow_tile()
+	session = ort.InferenceSession(str(onnx_path), providers=['CPUExecutionProvider'])
+	(output,) = session.run(None, {'input': tile})
+	value = roughness(output, tile)
+	if value >= 1:
+		raise SystemExit(f'{onnx_path.name}: {SHADOW.name} comes out {value:.1f}× rougher than it went in')
+	return {'shadowRoughness': round(value, 3)}
+
+
 def psnr(a: np.ndarray, b: np.ndarray) -> float:
 	mse = float(np.mean((np.clip(a, 0, 1) - np.clip(b, 0, 1)) ** 2))
 	return float('inf') if mse == 0 else 10 * np.log10(1.0 / mse)
@@ -142,6 +175,11 @@ def main() -> None:
 	summary = []
 	for model_id in args.models:
 		model = load_nafnet(model_id, str(ensure_checkpoint(model_id)))
+		with torch.no_grad():
+			# What the bounds are for: the published network on the shadow, for the summary.
+			tile = shadow_tile()
+			unbounded = round(roughness(model(torch.from_numpy(tile)).numpy(), tile), 3)
+		bound_attention(model, load_bounds(model_id), ATTENTION_MARGIN)
 		fp32 = OUT_DIR / f'{model_id}.fp32.onnx'
 		fp16 = OUT_DIR / f'{model_id}.fp16.onnx'
 
@@ -158,9 +196,11 @@ def main() -> None:
 				'sha256': sha256_file(path),
 				'opset': OPSET,
 				'padMultiple': PAD_MULTIPLE,
+				'attentionMargin': ATTENTION_MARGIN,
 			}
 			if precision == 'fp16':
 				entry |= audit
+			entry |= audit_shadow(path) | {'shadowRoughnessUnbounded': unbounded}
 			try:
 				entry |= check_against_torch(model, path)
 			except Exception as error:  # e.g. no fp16 Conv kernel in this onnxruntime build

@@ -21,5 +21,6 @@ skills-lock.json
 # Generated: their generators own the format (and CI checks them byte for byte)
 THIRD_PARTY_NOTICES.md
 tools/models/models.lock.json
+tools/models/attention-bounds/
 tools/models/test-models/models.lock.json
 docs/phase-0/results/
